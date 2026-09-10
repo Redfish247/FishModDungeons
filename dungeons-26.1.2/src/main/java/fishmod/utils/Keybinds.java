@@ -45,7 +45,13 @@ public class Keybinds {
 
     public static void init() {
 
-        category = KeyMapping.Category.register(Identifier.parse(Constants.NAMESPACE));
+        // Constants.NAMESPACE ("fishmod") is the shared ASSET namespace (icons etc.), not a unique
+        // mod id — blade-addons (FishMod's ancestor codebase, still installed standalone by some
+        // users) independently registers a category under that same "fishmod:..." identifier, so
+        // reusing it here throws IllegalArgumentException on whichever mod inits second and
+        // silently kills every FishMod keybind. "fishmod-dungeons" is this mod's actual Fabric mod
+        // id (see fabric.mod.json), guaranteed unique — use that instead for the category.
+        category = KeyMapping.Category.register(Identifier.parse("fishmod-dungeons:keys"));
 
         //normal keybinds
         openConfig = KeyMappingHelper.registerKeyMapping(new KeyMapping(

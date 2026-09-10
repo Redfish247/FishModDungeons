@@ -78,7 +78,7 @@ public final class DungeonWaypoints {
                 InputUtil.Type.MOUSE,
                 GLFW.GLFW_MOUSE_BUTTON_RIGHT,
                 fishmod.utils.Keybinds.category != null ? fishmod.utils.Keybinds.category
-                        : KeyBinding.Category.create(Identifier.of(Constants.NAMESPACE))));
+                        : KeyBinding.Category.create(Identifier.of("fishmod-dungeons", "keys"))));
 
         ClientTickEvents.END_CLIENT_TICK.register(DungeonWaypoints::onTick);
         RenderingEvents.NO_DEPTH_FILLED.register((ctx, matrices, vc) -> render(ctx, matrices, vc));

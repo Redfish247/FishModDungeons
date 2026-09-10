@@ -62,6 +62,11 @@ public class WardrobeHotkeys {
 
     private static boolean tryActivate(AbstractContainerScreen<?> screen, java.util.function.Predicate<KeyMapping> matches) {
         if (!FishSettings.wardrobeHotkeysEnabled) return false;
+        // Keybinds.init() can fail to run (e.g. a keybind-category id clash with another mod) and
+        // leave these arrays/fields null — degrade to a no-op instead of throwing, since an
+        // uncaught exception here is injected at HEAD of keyPressed/mouseClicked and would eat the
+        // rest of the vanilla handler for EVERY screen (including Escape-to-close).
+        if (Keybinds.wardrobeSlots == null) return false;
 
         String title = screen.getTitle().getString().replaceAll("§.", "").trim();
         boolean isWardrobe = title.contains("Armor Sets") || title.equals("Wardrobe");

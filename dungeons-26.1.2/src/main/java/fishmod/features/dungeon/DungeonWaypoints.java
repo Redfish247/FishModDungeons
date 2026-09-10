@@ -74,7 +74,7 @@ public final class DungeonWaypoints {
 
     public static void init() {
         KeyMapping.Category category = fishmod.utils.Keybinds.category;
-        if (category == null) category = KeyMapping.Category.register(Identifier.parse(Constants.NAMESPACE));
+        if (category == null) category = KeyMapping.Category.register(Identifier.parse("fishmod-dungeons:keys"));
         placeKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
                 "FishMod: Dungeon Waypoint place/remove",
                 InputConstants.Type.MOUSE,

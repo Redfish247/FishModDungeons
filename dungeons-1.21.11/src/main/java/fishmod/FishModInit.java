@@ -297,7 +297,6 @@ public class FishModInit implements ModInitializer {
         // PowderTracker.init();
         fishmod.features.dungeon.SimonSaysTracker.init();
         fishmod.features.dungeon.M7LeverWaypoints.init();
-        fishmod.features.dungeon.DungeonWaypoints.init();
         fishmod.features.dungeon.StarredMobHighlight.init();
         // Floor 7 boss timers (ported from blade-addons): Maxor/Storm/Goldor tick timers, crystal
         // spawn, term start, section progress, storm-crushed. HUDs auto-render via the practical
@@ -1109,6 +1108,11 @@ public class FishModInit implements ModInitializer {
         safeInit("Components", Components::init);
         safeInit("Config", () -> Config.manager.load());
         safeInit("Keybinds", Keybinds::init);
+        // DungeonWaypoints' KeyBinding.Category fallback (see that class's init()) assumes
+        // Keybinds.init() already ran — must come after it, or the fallback creates the shared
+        // category itself (since Keybinds.category is still null at that point) and Keybinds.init()
+        // then throws trying to create the same identifier a second time.
+        safeInit("DungeonWaypoints", fishmod.features.dungeon.DungeonWaypoints::init);
         safeInit("CustomEvents", CustomEvents::init);
         safeInit("Debug", Debug::init);
         safeInit("Location", Location::init);
