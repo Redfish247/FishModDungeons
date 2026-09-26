@@ -189,14 +189,19 @@ class FishModScreen : Screen(Text.literal("FishMod")) {
             f.sub.add(LimitedInputSetting("Custom Name", "", 18,
                 { FishSettings.nickCustomName },
                 { v -> FishSettings.nickCustomName = v ?: ""; if (NickState.isActive()) NickState.applyFromSettings() }))
-            f.sub.add(DropdownSetting("Color Mode", "", arrayOf("GRADIENT", "SOLID"),
+            f.sub.add(DropdownSetting("Color Mode", "", arrayOf("SOLID", "GRADIENT", "GRADIENT3", "RAINBOW"),
                 { FishSettings.nickColorMode },
                 { v -> FishSettings.nickColorMode = v; if (NickState.isActive()) NickState.applyFromSettings() }))
-            f.sub.add(ColorPickerSetting("Color", "",
+            f.sub.add(ConditionalColorPickerSetting("Start Color", "",
+                { !"RAINBOW".equals(FishSettings.nickColorMode, ignoreCase = true) },
                 { FishSettings.nickColorStart },
                 { v -> FishSettings.nickColorStart = v; if (NickState.isActive()) NickState.applyFromSettings() }))
+            f.sub.add(ConditionalColorPickerSetting("Mid Color", "",
+                { "GRADIENT3".equals(FishSettings.nickColorMode, ignoreCase = true) },
+                { FishSettings.nickColorMid },
+                { v -> FishSettings.nickColorMid = v; if (NickState.isActive()) NickState.applyFromSettings() }))
             f.sub.add(ConditionalColorPickerSetting("End Color", "",
-                { "GRADIENT".equals(FishSettings.nickColorMode, ignoreCase = true) },
+                { "GRADIENT".equals(FishSettings.nickColorMode, ignoreCase = true) || "GRADIENT3".equals(FishSettings.nickColorMode, ignoreCase = true) },
                 { FishSettings.nickColorEnd },
                 { v -> FishSettings.nickColorEnd = v; if (NickState.isActive()) NickState.applyFromSettings() }))
             f.sub.add(ToggleSetting("See Others", "", FishSettings::remoteNicksEnabled))

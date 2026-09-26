@@ -179,6 +179,7 @@ object FishSettings {
 
     // Gradient/solid color applied to your real username.
     @ConfigValue @JvmField var nickColorStart: Int = 0xFFFF5555.toInt()
+    @ConfigValue @JvmField var nickColorMid: Int = 0xFFFFFF55.toInt()
     @ConfigValue @JvmField var nickColorEnd: Int = 0xFF5555FF.toInt()
     @ConfigValue @JvmField var nickCustomName: String = ""
     @ConfigValue @JvmField var nickColorMode: String = "GRADIENT"
