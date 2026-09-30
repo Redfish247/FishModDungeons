@@ -33,13 +33,9 @@ public class MouseMixin {
     @Inject(method = "onScroll", at = @At("HEAD"), cancellable = true)
     private void fishmod$chatPeekScroll(long window, double horizontal, double vertical, CallbackInfo ci) {
         if (!Keybinds.chatPeekActive()) return;
-        try {
-            double amount = Math.max(-1.0, Math.min(1.0, vertical));
-            if (!Minecraft.getInstance().hasShiftDown()) amount *= 7.0;
-            Minecraft.getInstance().gui.getChat().scrollChat((int) amount);
-        } catch (Throwable t) {
-            fishmod.utils.debug.FishDiag.fail("MouseMixin.1", "chat peek scroll failed", t);
-        }
+        double amount = Math.max(-1.0, Math.min(1.0, vertical));
+        if (!Minecraft.getInstance().hasShiftDown()) amount *= 7.0;
+        Minecraft.getInstance().gui.getChat().scrollChat((int) amount);
         ci.cancel();
     }
 
@@ -53,13 +49,9 @@ public class MouseMixin {
     @Inject(method = "releaseMouse", at = @At(value = "FIELD",
             target = "Lnet/minecraft/client/MouseHandler;xpos:D", opcode = Opcodes.GETFIELD, ordinal = 0))
     private void fishmod$restoreCursor(CallbackInfo ci) {
-        try {
-            if (NoCursorReset.shouldHook() && Minecraft.getInstance().screen instanceof AbstractContainerScreen) {
-                this.xpos = this.fishmod$beforeX;
-                this.ypos = this.fishmod$beforeY;
-            }
-        } catch (Throwable t) {
-            fishmod.utils.debug.FishDiag.fail("MouseMixin.2", "cursor restore failed", t);
+        if (NoCursorReset.shouldHook() && Minecraft.getInstance().screen instanceof AbstractContainerScreen) {
+            this.xpos = this.fishmod$beforeX;
+            this.ypos = this.fishmod$beforeY;
         }
     }
 }

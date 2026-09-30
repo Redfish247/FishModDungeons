@@ -20,7 +20,8 @@ object DianaTrackerHud {
         "MYTHOS_FRAGMENT" to "§6Mythos Fragment", "WASHED_UP_SOUVENIR" to "§6Washed-up Souvenir", "CRETAN_URN" to "§2Cretan Urn",
         "DWARF_TURTLE_SHELMET" to "§2Dwarf Turtle Shelmet", "CROCHET_TIGER_PLUSHIE" to "§2Crochet Tiger Plushie",
         "ANTIQUE_REMEDIES" to "§2Antique Remedies", "CRETAN_BULL_SHARD" to "§2Cretan Bull Shard", "HARPY_SHARD" to "§2Harpy Shard",
-        "HILT_OF_REVELATIONS" to "§9Hilt of Revelations",
+        "HILT_OF_REVELATIONS" to "§9Hilt of Revelations", "ENCHANTED_GOLD" to "§9Enchanted Gold",
+        "ENCHANTED_ANCIENT_CLAW" to "§9Enchanted Ancient Claw", "ANCIENT_CLAW" to "§9Ancient Claw",
     )
     private val MOB_COLOR = mapOf(
         "KING_MINOS" to "§c", "MANTICORE" to "§c", "MINOS_INQUISITOR" to "§d", "SPHINX" to "§5",
@@ -42,8 +43,11 @@ object DianaTrackerHud {
         Stat("DAEDALUS_STICK", "§6", "Minotaurs since Stick"),
     )
 
-    // id null = header, never hideable
-    private class Row(val id: String?, val text: String)
+    // id null = header, never hideable; tail + tailX = value column then aligned item text
+    private class Row(val id: String?, val text: String, val tail: String? = null, val tailX: Int = 0) {
+        fun width(font: net.minecraft.client.gui.Font): Int =
+            if (tail == null) font.width(text) else tailX + font.width(tail)
+    }
     private class Hud(val gx: () -> Int, val gy: () -> Int, val gs: () -> Double, val on: () -> Boolean, val make: () -> List<Row>)
     private class Cache(var version: Int = -1, var at: Long = 0L, var rows: List<Row> = emptyList())
     private val caches = HashMap<String, Cache>()
@@ -51,7 +55,7 @@ object DianaTrackerHud {
     private val STRIP = Regex("§.")
 
     fun init() {
-        reg("Diana Loot Tracker", "diana_loot", 170, 250,
+        reg("Diana Loot Tracker", "diana_loot", 200, 250,
             { DianaSettings.dianaLootPosX }, { DianaSettings.dianaLootPosX = it },
             { DianaSettings.dianaLootPosY }, { DianaSettings.dianaLootPosY = it },
             { DianaSettings.dianaLootPosScale }, { DianaSettings.dianaLootPosScale = it },
@@ -98,7 +102,7 @@ object DianaTrackerHud {
             val lx = (mx - h.gx()) / sc; val ly = (my - h.gy()) / sc
             if (lx < 0 || ly < 0) return@forVisible
             val row = rows(id, h).getOrNull((ly / 10).toInt()) ?: return@forVisible
-            if (row.id == null || lx > font.width(row.text)) return@forVisible
+            if (row.id == null || lx > row.width(font)) return@forVisible
             DianaTracker.toggleHidden(row.id)
             return true
         }
@@ -140,7 +144,16 @@ object DianaTrackerHud {
         for (r in rows) {
             val hidden = r.id != null && DianaTracker.isHidden(r.id)
             if (hidden && !editing) continue
-            ctx.text(mc.font, if (hidden) "§7§m" + r.text.replace(STRIP, "") else r.text, 0, i * 10, -1, true)
+            val font = mc.font
+            if (r.tail == null) {
+                ctx.text(font, if (hidden) "§7§m" + r.text.replace(STRIP, "") else r.text, 0, i * 10, -1, true)
+            } else {
+                val strike = hidden
+                val left = if (strike) "§7§m" + r.text.replace(STRIP, "") else r.text
+                val right = if (strike) "§7§m" + r.tail.replace(STRIP, "") else r.tail
+                ctx.text(font, left, 0, i * 10, -1, true)
+                ctx.text(font, right, r.tailX, i * 10, -1, true)
+            }
             i++
         }
         pose.popMatrix()
@@ -153,20 +166,30 @@ object DianaTrackerHud {
         val mode = DianaSettings.dianaLootTracker
         val t = DianaTracker.tracker(mode) ?: return emptyList()
         val hide = DianaSettings.dianaHideUnobtained
+        val font = Minecraft.getInstance().font
         val out = ArrayList<Row>()
         out += Row(null, title("Diana Loot", mode, t))
+
+        data class ItemLine(val id: String, val value: String, val tail: String)
+        val items = ArrayList<ItemLine>()
         for ((k, label) in LOOT_ORDER) {
             val n = t.item(k); val ls = t.item(k + "_LS")
             if (hide && n + ls == 0L) continue
-            val value = DianaTracker.priceOf(k) * (n + ls)
-            out += Row("loot:$k", "$label §f$n" + (if (ls > 0) " §7+$ls LS" else "") + (if (value > 0) " §6${DianaTracker.short(value)}" else ""))
+            val coins = DianaTracker.priceOf(k) * (n + ls)
+            val value = if (coins > 0) "§6${DianaTracker.short(coins)}" else ""
+            val tail = "${"| " + label} §f$n" + if (ls > 0) " §7+$ls LS" else ""
+            items += ItemLine("loot:$k", value, tail)
         }
+        val valueColW = items.maxOfOrNull { font.width(it.value) } ?: 0
+        val itemX = valueColW + 6
+        for (line in items) out += Row(line.id, line.value, line.tail, itemX)
+
         val burrows = t.item("TOTAL_BURROWS").toDouble()
         val profit = DianaTracker.profit(t)
-        out += Row("loot:COINS", "§6Coins §f${DianaTracker.short(t.item("COINS").toDouble())}")
-        out += Row("loot:BURROWS", "§7Burrows §f${"%,d".format(burrows.toLong())} §8(${"%.0f".format(DianaTracker.perHour(burrows, t))}/h)")
+        out += Row("loot:COINS", "§6Coins §6${DianaTracker.short(t.item("COINS").toDouble())}")
+        out += Row("loot:BURROWS", "§7Burrows §f${"%,d".format(burrows.toLong())} §7(${"%.1f".format(DianaTracker.perHour(burrows, t))}/h)")
         out += Row("loot:PLAYTIME", "§7Playtime §f${DianaTracker.fmtTime(t.timeMs)}" + if (DianaTracker.paused()) " §c[Paused]" else "")
-        out += Row("loot:PROFIT", "§eProfit §6${DianaTracker.short(profit)} §8(${DianaTracker.short(DianaTracker.perHour(profit, t))}/h)")
+        out += Row("loot:PROFIT", "§eProfit §6${DianaTracker.short(profit)} §7(${DianaTracker.short(DianaTracker.perHour(profit, t))}/h)")
         return out
     }
 

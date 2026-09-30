@@ -105,12 +105,24 @@ object DianaTracker {
     )
     private val NO_PRICE = setOf("TOTAL_BURROWS", "COINS")
 
+    // Stackable mob drops with no chat line: counted from inventory pickups and the [Sacks] hover (as SBO does)
+    private val STACK_DROPS = setOf("ENCHANTED_GOLD", "ENCHANTED_ANCIENT_CLAW", "ANCIENT_CLAW")
+    private val SACK_NAMES = mapOf(
+        "Enchanted Gold" to "ENCHANTED_GOLD", "Enchanted Ancient Claw" to "ENCHANTED_ANCIENT_CLAW", "Ancient Claw" to "ANCIENT_CLAW",
+    )
+    private val SACK_LINE = Regex("""\+([\d,]+) ([^(\n]+)""")
+    private const val PICKUP_WINDOW_MS = 3_000L
+    private const val SACK_WINDOW_MS = 30_000L
+    private val invCounts = HashMap<String, Int>()
+    private var invBaseline = false
+
     private val BURROW = Regex("^You .*?Griffin [Bb]urrow")
     private val DUG_MOB = Regex("You dug (?:out )?(?:an? )?(.+?)!$")
     private val COINS = Regex("^Wow! You dug out ([\\d,]+) coins!")
     private val TREASURE = Regex("^RARE DROP! You dug out an? (.+?)!$")
     private val RARE_DROP = Regex("^RARE DROP! (.+)$")
-    private val MF = Regex("\\(\\+(\\d+)%? ✯ Magic Find\\)")
+    // Only the number is reliable; star glyph and spacing vary (SBO matches the same way)
+    private val MF = Regex("\\(\\+([\\d,]+)[^)]*Magic Find")
     private val CHARM = Regex("^CHARM! You charmed .+? and received (\\d+) (.+?) Shards?!")
     private val LS_SHARD = Regex("^LOOT SHARE You received (\\d+) (.+?) Shards? for assisting")
 
@@ -148,11 +160,13 @@ object DianaTracker {
         ClientLifecycleEvents.CLIENT_STOPPING.register { flushSave(true) }
         Events.ON_WORLD_CHANGE.register {
             flushSave(true); lastActivityMs = 0L; sinceActivityMs = 0L; afk = true; hiltBaseline = false; seenHilts.clear()
+            invBaseline = false
             false
         }
         Events.ON_GAME_MESSAGE.register { text ->
             if (!Diana.inHub()) return@register false
             val s = text.string.replace(Constants.STRIP_COLOR_REGEX, "").trim()
+            if (DianaSettings.dianaTracker && s.startsWith("[Sacks]")) onSacks(text)
             if (DianaSettings.dianaTracker) onChat(s) else hideOnly(s)
         }
         RareMobs.deathListeners.add(::onRareMobDeath)
@@ -195,7 +209,7 @@ object DianaTracker {
         RARE_DROP.find(s)?.let { m ->
             if (dup) return false
             val body = m.groupValues[1]
-            val mf = MF.find(body)?.groupValues?.get(1)?.toIntOrNull() ?: 0
+            val mf = MF.find(body)?.groupValues?.get(1)?.replace(",", "")?.toIntOrNull() ?: 0
             val d = DROPS.firstOrNull { body.contains(it.name, true) }
             if (d != null && (d.key != "CHIMERA" || body.contains("Enchanted Book"))) onDrop(d, mf)
             return false
@@ -297,7 +311,7 @@ object DianaTracker {
             data.stats.since[sk] = 0
         }
         if (d.loud) announce(d, mf, ls, took)
-        else if (fromInventory && DianaSettings.dianaAnnouncers && DianaSettings.dianaHiltMessage) FishMsg.send("§lRARE DROP! §r${d.color}${d.name}§e #${event.item(d.key)}${priceSuffix(d.key)}")
+        else if (fromInventory && DianaSettings.dianaAnnouncers && DianaSettings.dianaHiltMessage) FishMsg.send("§6§lRARE DROP! §r${d.color}${d.name}§e #${event.item(d.key)}${priceSuffix(d.key)}")
     }
 
     private fun priceSuffix(k: String): String {
@@ -311,7 +325,7 @@ object DianaTracker {
         val count = event.item(d.key) + lsN
         val countS = if (!d.ls) " #$count" else if (ls) " Total #$count LS #$lsN" else " #$count"
         val price = priceOf(d.key)
-        val mfS = if (mf > 0) " (+$mf% ✯ Magic Find)" else ""
+        val mfS = if (mf > 0) " (+$mf ✯ Magic Find)" else ""
         val lsS = if (ls) " (LS)" else ""
         val custom = custom(d, mf, ls, count, price, took)
         if (DianaSettings.dianaRareDropChat) {
@@ -328,11 +342,25 @@ object DianaTracker {
         }
     }
 
-    private fun custom(d: Drop, mf: Int, ls: Boolean, count: Long, price: Double, took: Int): String? {
-        val tpl = d.template().takeIf { it.isNotBlank() } ?: return null
-        val src = d.source?.let { event.mob(it) } ?: 0L
-        val pct = if (src > 0) event.item(d.key) * 100.0 / src else 0.0
-        var out = tpl.replace("{mf}", if (mf > 0) "$mf" else "")
+    // Drops whose message can be edited in the Diana Messages popup; blank setting = default template
+    val EDITABLE = listOf("CHIMERA", "MANTI_CORE", "FATEFUL_STINGER", "BRAIN_FOOD", "SHIMMERING_WOOL")
+
+    fun drop(key: String): Drop = DROP_BY_KEY.getValue(key)
+
+    fun defaultMsg(d: Drop): String =
+        "&6&lRARE DROP! &r${d.color.replace('§', '&')}${d.name} &b(+{mf} ✯ Magic Find) &d{lstext} &e#{amount} &6(+{price} coins)"
+
+    private val MF_PART = Regex("\\s*\\(\\+\\{mf\\}%? ✯ Magic Find\\)")
+    private val PRICE_PART = Regex("\\s*\\(\\+\\{price\\} coins\\)")
+    private val SPACES = Regex(" {2,}")
+    private val SPACE_CODES_SPACE = Regex(""" +((?:§.)+) +""")
+
+    // Fills a drop template; empty MF / price brackets are dropped so the line stays clean
+    fun fillTemplate(tpl: String, mf: Int, ls: Boolean, count: Long, pct: Double, price: Double, took: Int): String {
+        var t = tpl
+        if (mf <= 0) t = t.replace(MF_PART, "")
+        if (price <= 0) t = t.replace(PRICE_PART, "")
+        var out = t.replace("{mf}", if (mf > 0) "$mf" else "")
             .replace("{amount}", count.toString())
             .replace("{percentage}", "%.2f%%".format(pct))
             .replace("{price}", short(price))
@@ -340,7 +368,17 @@ object DianaTracker {
             .replace("{lstext}", if (ls) "(LS)" else "")
             .replace('&', '§')
         if (mf <= 0) out = out.replace(Regex("\\s*\\(\\+%? ✯ Magic Find\\)"), "")
-        return out
+        // An empty slot like {lstext} leaves "§d " between two spaces; fold those into one space
+        var prev: String
+        do { prev = out; out = out.replace(SPACE_CODES_SPACE, " $1") } while (out != prev)
+        return out.replace(SPACES, " ").trim()
+    }
+
+    private fun custom(d: Drop, mf: Int, ls: Boolean, count: Long, price: Double, took: Int): String? {
+        val tpl = d.template().ifBlank { if (d.key in EDITABLE) defaultMsg(d) else "" }.takeIf { it.isNotBlank() } ?: return null
+        val src = d.source?.let { event.mob(it) } ?: 0L
+        val pct = if (src > 0) event.item(d.key) * 100.0 / src else 0.0
+        return fillTemplate(tpl, mf, ls, count, pct, price, took)
     }
 
     private fun track(k: String, n: Long) {
@@ -453,7 +491,43 @@ object DianaTracker {
             if (Diana.active()) CroesusPrices.refreshIfStale()
         }
         if (tickN % 10 == 0 && DianaSettings.dianaTracker) mc.player?.let { scanHilts(it) }
+        if (tickN % 5 == 0 && DianaSettings.dianaTracker) mc.player?.let { scanStackDrops(mc, it) }
         flushSave(false)
+    }
+
+    private fun mobDiedWithin(ms: Long) = System.currentTimeMillis() - RareMobs.lastDianaMobDeathMs <= ms
+
+    // Claws / enchanted gold picked up right after a Diana mob dies; menus reset the baseline so moving items isn't counted
+    private fun scanStackDrops(mc: Minecraft, p: net.minecraft.world.entity.player.Player) {
+        val cur = HashMap<String, Int>()
+        for (st in p.inventory.nonEquipmentItems) {
+            val id = ItemUtil.getId(st) ?: continue
+            if (id in STACK_DROPS) cur[id] = (cur[id] ?: 0) + st.count
+        }
+        val menu = mc.screen is net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<*>
+        if (invBaseline && !menu && Diana.inHub() && mobDiedWithin(PICKUP_WINDOW_MS)) {
+            for ((id, n) in cur) {
+                val gained = n - (invCounts[id] ?: 0)
+                if (gained > 0) track(id, gained.toLong())
+            }
+        }
+        invCounts.clear(); invCounts.putAll(cur); invBaseline = true
+    }
+
+    // "[Sacks] +N items" lists what went straight to sacks in its hover text
+    private fun onSacks(text: Component) {
+        if (!mobDiedWithin(SACK_WINDOW_MS)) return
+        val hovers = ArrayList<String>()
+        fun walk(c: Component) {
+            (c.style.hoverEvent as? net.minecraft.network.chat.HoverEvent.ShowText)?.let { hovers += it.value().string }
+            c.siblings.forEach(::walk)
+        }
+        walk(text)
+        for (h in hovers) for (m in SACK_LINE.findAll(h.replace(Constants.STRIP_COLOR_REGEX, ""))) {
+            val name = m.groupValues[2].replace("Ingot", "").trim()
+            val id = SACK_NAMES[name] ?: continue
+            m.groupValues[1].replace(",", "").toLongOrNull()?.let { track(id, it) }
+        }
     }
 
     // Hypixel sends no chat line for hilts, so watch for a fresh one in the inventory

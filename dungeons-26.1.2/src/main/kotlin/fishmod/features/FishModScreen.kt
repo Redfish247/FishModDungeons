@@ -1215,6 +1215,7 @@ class FishModScreen : Screen(Component.literal("FishMod")), HasUiOverlay {
             f.sub.add(ToggleSetting("Show Number", "", FishSettings::cooldownShowText))
             f.sub.add(ToggleSetting("Under 3s Only", "", FishSettings::cooldownOnlyUnder3s))
             f.sub.add(ToggleSetting("In Inventory", "", FishSettings::cooldownInInventory))
+            f.sub.add(ToggleSetting("Disable Cooldown Background", "Hide vanilla's white cooldown sweep on items", Visual::hideCooldown))
             hud.features.add(f)
         }
         hud.features.add(Feature("Catacombs Overflow Levels", FishSettings::catacombsOverflowEnabled))
@@ -1265,6 +1266,11 @@ class FishModScreen : Screen(Component.literal("FishMod")), HasUiOverlay {
             f.sub.add(ToggleSetting("Show Rarity", "Colour the pet name by its rarity", FishSettings::petHudShowRarity))
             f.sub.add(ToggleSetting("Fade Idle", "", FishSettings::petHudFadeIdle))
             f.sub.add(SliderIntSetting("Fade ms", "", FishSettings::petHudFadeMs, 1000, 30000).gatedBy { FishSettings.petHudFadeIdle })
+            hud.features.add(f)
+        }
+        run {
+            val f = Feature("Hide Pet Nametag Level", FishSettings::petNametagHideLevel)
+            f.sub.add(SubcategoryHeader("Drops the [283] level off pet nametags (skins show overflow levels)"))
             hud.features.add(f)
         }
         run {
