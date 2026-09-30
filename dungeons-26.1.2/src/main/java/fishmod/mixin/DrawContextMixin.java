@@ -72,13 +72,17 @@ public class DrawContextMixin {
 
     @ModifyVariable(method = "itemCooldown", at=@At("STORE"), ordinal = 0)
     private float noCooldown(float f) {
-        return Visual.hideCooldown? 0: f;
+        return fishmod.features.CooldownOverlay.shouldHideVanillaCooldown() ? 0 : f;
     }
 
     @Inject(method = "item(Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/level/Level;Lnet/minecraft/world/item/ItemStack;III)V", at=@At("HEAD"))
     private void scaleUp(LivingEntity entity, Level world, ItemStack stack, int x, int y, int seed, CallbackInfo ci) {
         if (entity != null) {
-            fishmod.features.ItemRarityHotbar.drawRarity((GuiGraphicsExtractor) (Object) this, stack, x, y);
+            try {
+                fishmod.features.ItemRarityHotbar.drawRarity((GuiGraphicsExtractor) (Object) this, stack, x, y);
+            } catch (Throwable t) {
+                fishmod.utils.debug.FishDiag.fail("DrawContextMixin.1", "hotbar rarity draw failed item=" + stack.getItem(), t);
+            }
         }
         if (Visual.oldPlayerHead && stack.getItem() == Items.PLAYER_HEAD) {
             float scale = 0.875f;
