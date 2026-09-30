@@ -313,17 +313,25 @@ object DianaTracker {
         val custom = custom(d, mf, ls, count, price, took)
         if (DianaSettings.dianaRareDropChat) {
             if (custom != null) Misc.addChatMessage(Component.literal(custom))
-            else FishMsg.send("§lRARE DROP! §r${d.color}${d.name}§b$mfS§d$lsS§e$countS${priceSuffix(d.key)}")
+            else FishMsg.send(joinParts("§lRARE DROP!§r", d.color + d.name, mfS.trim().let { if (it.isEmpty()) "" else "§b$it" },
+                lsS.trim().let { if (it.isEmpty()) "" else "§d$it" }, "§e" + countS.trim(), priceSuffix(d.key).trim()))
         }
         if (DianaSettings.dianaLootScreen) {
             Misc.forceTitle(Component.literal("${d.color}§l${d.name}$lsS!"), Component.literal(if (price > 0) "§6${short(price)} coins" else ""))
         }
         if (DianaSettings.dianaLootParty && d.party) {
             val msg = custom?.replace(Constants.STRIP_COLOR_REGEX, "")
-                ?: ("[FishMod] RARE DROP! ${d.name}$mfS$lsS$countS" + if (price > 0) " (+${short(price)} coins)" else "")
+                ?: joinParts("[FishMod] RARE DROP!", d.name, mfS, lsS, countS, if (price > 0) "(+${short(price)} coins)" else "")
             fishmod.utils.ChatQueue.enqueue("pc $msg")
         }
     }
+
+    private val LEAD_CODES_SPACE = Regex("""^((?:§.)*)\s+""")
+
+    // Single spaces only; empty parts (no MF, no LS, no price) leave no gap or stray colour code
+    private fun joinParts(vararg parts: String): String =
+        parts.map { it.trim().replace(LEAD_CODES_SPACE, "$1") }.filter { it.isNotEmpty() && it.replace(Constants.STRIP_COLOR_REGEX, "").isNotBlank() }
+            .joinToString(" ").replace(Regex(" {2,}"), " ")
 
     private fun custom(d: Drop, mf: Int, ls: Boolean, count: Long, price: Double, took: Int): String? {
         val tpl = d.template().takeIf { it.isNotBlank() } ?: return null
