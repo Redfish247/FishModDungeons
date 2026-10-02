@@ -41,8 +41,11 @@ class PvScreen(query: String?) : Screen(Component.literal("Profile Viewer")), Ha
     private val popupHits = ArrayList<Hit>()
     private var collectingContent = false
     private var tip: List<String>? = null
+    private var tipSrc: List<String>? = null
+    private var tipComps: List<Component> = emptyList()
 
     private var k = 1f
+    private var dp = 0.5f
     private var vw = 0
     private var vh = 0
     private var view = PvRect(0, 0, 0, 0)
@@ -107,12 +110,14 @@ class PvScreen(query: String?) : Screen(Component.literal("Profile Viewer")), Ha
         ctx.pose().scale(k, k)
         ctx.fill(0, 0, vw + 1, vh + 1, 0x55000000)
 
-        val fw = min(vw - 24, ((vh - 24) * 1.6).toInt()).coerceAtLeast(320)
-        val fh = (fw / 1.6).toInt()
+        dp = PvCtx.devPx()
+        // Fill the screen height; width capped so very wide windows keep a sane aspect.
+        val fh = (vh - 16).coerceAtLeast(120)
+        val fw = min(vw - 16, (fh * 1.8).toInt()).coerceAtLeast(160)
         val fx = (vw - fw) / 2; val fy = (vh - fh) / 2
-        for (i in 8 downTo 2 step 3) ScreenTheme.roundedRect(ctx, fx - i, fy - i + 5, fw + i * 2, fh + i * 2, 14 + i, 0x14000000)
-        ScreenTheme.roundedRect(ctx, fx - 1, fy - 1, fw + 2, fh + 2, 15, t.line)
-        ScreenTheme.roundedRect(ctx, fx, fy, fw, fh, 14, t.frame)
+        PvCtx.smoothRect(ctx, fx - 3, fy - 1, fw + 6, fh + 6, 17f, 0x1A000000, dp)
+        PvCtx.smoothRect(ctx, fx - 1, fy - 1, fw + 2, fh + 2, 15f, t.line, dp)
+        PvCtx.smoothRect(ctx, fx, fy, fw, fh, 14f, t.frame, dp)
 
         val res = if (load.state == PvLoad.State.READY) load.result else null
         val prof = res?.let { currentProfile(it) }
@@ -137,7 +142,7 @@ class PvScreen(query: String?) : Screen(Component.literal("Profile Viewer")), Ha
                     UiRecorder.fillRoundedRect((fx + 6).toFloat(), sy.toFloat(), (railW - 12).toFloat(), 16f, 5f, t.panel)
                     UiRecorder.fillRect((fx + 6).toFloat(), (sy + 2).toFloat(), 2f, 12f, t.acc)
                 }
-                UiRecorder.text(s, (fx + 13).toFloat(), sy + 4.5f, PvCtx.S_SM, if (on || hov) t.fg else t.mut)
+                UiRecorder.text(s, (fx + 13).toFloat(), mid(sy, 16, PvCtx.S_SM), PvCtx.S_SM, if (on || hov) t.fg else t.mut)
                 addHit(fx + 6, sy, railW - 12, 16) { subSel[tab.id] = i; scrolls[tab.id] = 0 }
                 sy += 18
             }
@@ -180,8 +185,16 @@ class PvScreen(query: String?) : Screen(Component.literal("Profile Viewer")), Ha
         ctx.pose().popMatrix()
 
         val tl = tip
-        if (tl != null) ScreenTheme.nItemTooltip(tl.map { Component.literal(it) }, mx, my, vw, vh, paintScale = k)
+        if (tl != null) {
+            if (tl !== tipSrc) { tipSrc = tl; tipComps = tl.map { Component.literal(it) } }
+            ScreenTheme.nItemTooltip(tipComps, mx, my, vw, vh, paintScale = k)
+        }
     }
+
+    private fun boldT(s: String, x: Float, y: Float, size: Float, col: Int) {
+        UiRecorder.text(s, x, y, size, col); UiRecorder.text(s, x + dp, y, size, col)
+    }
+    private fun mid(y: Int, h: Int, size: Float) = PvCtx.midY(y.toFloat(), h.toFloat(), size)
 
     private fun maxScroll() = (contentH - (view.h - 10)).coerceAtLeast(0)
 
@@ -190,13 +203,13 @@ class PvScreen(query: String?) : Screen(Component.literal("Profile Viewer")), Ha
         val y1 = fy + 8
         // Theme button
         val tl = t.name
-        val tw = UiRecorder.textWidth(tl, PvCtx.S_SM).toInt() + 26
+        val tw = PvCtx.width(tl, PvCtx.S_SM).toInt() + 26
         val tx = fx + 12
         val hovT = mx in tx until tx + tw && my in y1 until y1 + 15
         UiRecorder.roundedRectRing(tx.toFloat(), y1.toFloat(), tw.toFloat(), 15f, 7.5f, 1f, if (hovT) t.panel else t.panel2, t.line)
         UiRecorder.disc(tx + 9f, y1 + 7.5f, 4f, t.acc)
         UiRecorder.disc(tx + 9f, y1 + 7.5f, 2f, t.gold)
-        UiRecorder.textBold(tl, (tx + 17).toFloat(), y1 + 4.5f, PvCtx.S_SM, t.fg)
+        boldT(tl, (tx + 17).toFloat(), mid(y1, 15, PvCtx.S_SM), PvCtx.S_SM, t.fg)
         addHit(tx, y1, tw, 15) { skin = (skin + 1) % PvTheme.ALL.size }
 
         // Right cluster: profile, co-op, username field + View
@@ -205,7 +218,7 @@ class PvScreen(query: String?) : Screen(Component.literal("Profile Viewer")), Ha
         rx -= vwBtn
         val hovV = mx in rx until rx + vwBtn && my in y1 until y1 + 15
         UiRecorder.fillRoundedRect(rx.toFloat(), y1.toFloat(), vwBtn.toFloat(), 15f, 7.5f, if (hovV) t.fg else t.acc)
-        UiRecorder.textBold("View", rx + 8f, y1 + 4.5f, PvCtx.S_SM, t.accInk)
+        boldT("View", rx + 8f, mid(y1, 15, PvCtx.S_SM), PvCtx.S_SM, t.accInk)
         addHit(rx, y1, vwBtn, 15) { submitName() }
         val fieldW = 92
         rx -= fieldW + 2
@@ -213,47 +226,52 @@ class PvScreen(query: String?) : Screen(Component.literal("Profile Viewer")), Ha
         UiRecorder.roundedRectRing(rx.toFloat(), y1.toFloat(), fieldW.toFloat(), 15f, 7.5f, 1f, t.panel2, if (nameField.isFocused) t.acc else t.line)
         ScreenTheme.nTextFieldContent(nameField, nameField.isFocused, rx + 5, y1, fieldW - 8, 15, PvCtx.S_SM)
         if (nameField.value.isEmpty() && !nameField.isFocused)
-            UiRecorder.text("Username…", rx + 8f, y1 + 4.5f, PvCtx.S_SM, t.mut)
+            UiRecorder.text("Username…", rx + 8f, mid(y1, 15, PvCtx.S_SM), PvCtx.S_SM, t.mut)
         if (prof != null) {
             val coop = "Co-op ${prof.members.size}"
-            val cw = UiRecorder.textWidth(coop, PvCtx.S_SM).toInt() + 24
+            val cw = PvCtx.width(coop, PvCtx.S_SM).toInt() + 22
             rx -= cw + 6
             val bx = rx
             val hov = mx in bx until bx + cw && my in y1 until y1 + 15
             UiRecorder.roundedRectRing(bx.toFloat(), y1.toFloat(), cw.toFloat(), 15f, 7.5f, 1f, if (hov || dropdown == 1) t.panel else t.panel2, t.line)
-            UiRecorder.textBold(coop, bx + 7f, y1 + 4.5f, PvCtx.S_SM, t.fg)
-            UiRecorder.chevron(bx + cw - 13f, y1 + 7.5f, true, t.mut)
+            boldT(coop, bx + 7f, mid(y1, 15, PvCtx.S_SM), PvCtx.S_SM, t.fg)
+            PvCtx.chevron(bx + cw - 10f, y1 + 7.5f, true, t.mut)
             addHit(bx, y1, cw, 15) { if (dropdown == 1) dropdown = 0 else { dropdown = 1; dropX = bx + cw; dropY = y1 + 18 } }
             val pl = prof.cuteName + (if (prof.modeIcon.isNotEmpty()) " " + prof.modeIcon else "")
-            val pw = UiRecorder.textWidth(pl, PvCtx.S_SM).toInt() + 24
+            val pw = PvCtx.width(pl, PvCtx.S_SM).toInt() + 22
             rx -= pw + 6
             val px = rx
             val hovP = mx in px until px + pw && my in y1 until y1 + 15
             UiRecorder.roundedRectRing(px.toFloat(), y1.toFloat(), pw.toFloat(), 15f, 7.5f, 1f, if (hovP || dropdown == 2) t.panel else t.panel2, t.line)
-            UiRecorder.textBold(pl, px + 7f, y1 + 4.5f, PvCtx.S_SM, t.fg)
-            UiRecorder.chevron(px + pw - 13f, y1 + 7.5f, true, t.mut)
+            boldT(pl, px + 7f, mid(y1, 15, PvCtx.S_SM), PvCtx.S_SM, t.fg)
+            PvCtx.chevron(px + pw - 10f, y1 + 7.5f, true, t.mut)
             addHit(px, y1, pw, 15) { if (dropdown == 2) dropdown = 0 else openProfileMenu(px + pw, y1 + 18) }
         }
-        val nameLabel = res?.let { "§l" + it.name } ?: ""
-        if (nameLabel.isNotEmpty()) ScreenTheme.nLegacyText(nameLabel, tx + tw + 8, y1 + 4, t.fg, PvCtx.S_MD)
+        val nameLabel = res?.name ?: ""
+        if (nameLabel.isNotEmpty() && tx + tw + 8 + PvCtx.width(nameLabel, PvCtx.S_MD) < rx - 6)
+            boldT(nameLabel, tx + tw + 8f, mid(y1, 15, PvCtx.S_MD), PvCtx.S_MD, t.fg)
 
         // Tab strip, spread across the width
         val y2 = y1 + 20
         val tabs = PvTabs.all
-        val widths = tabs.map { UiRecorder.textWidth(it.title, PvCtx.S_SM).toInt() + 12 }
-        val total = widths.sum()
-        val avail = fw - 24
-        val gap = if (tabs.size > 1) ((avail - total).toFloat() / (tabs.size - 1)).coerceAtLeast(0f) else 0f
+        // Shrink font/padding until every tab fits on one row.
+        val avail = (fw - 24).toFloat()
+        var size = PvCtx.S_SM; var pad = 12f
+        var textTotal = tabs.sumOf { PvCtx.width(it.title, size).toDouble() }.toFloat()
+        while (textTotal + pad * tabs.size > avail && (size > 5f || pad > 6f)) {
+            if (pad > 6f) pad -= 2f else size -= 0.25f
+            textTotal = tabs.sumOf { PvCtx.width(it.title, size).toDouble() }.toFloat()
+        }
+        val gap = if (tabs.size > 1) ((avail - textTotal - pad * tabs.size) / (tabs.size - 1)).coerceAtLeast(0f) else 0f
         var x = (fx + 12).toFloat()
-        for ((i, tab) in tabs.withIndex()) {
-            val w = widths[i]
+        for (tab in tabs) {
+            val w = PvCtx.width(tab.title, size) + pad
             val on = tab.id == tabId
             val hov = !on && mx >= x && mx < x + w && my in y2 until y2 + 14
-            if (on) UiRecorder.fillRoundedRect(x, y2.toFloat(), w.toFloat(), 14f, 7f, t.acc)
+            if (on) UiRecorder.fillRoundedRect(x, y2.toFloat(), w, 14f, 7f, t.acc)
             val col = if (on) t.accInk else if (hov) t.fg else t.mut
-            UiRecorder.textBold(tab.title, x + 6, y2 + 4f, PvCtx.S_SM, col)
-            val xi = x.toInt()
-            addHit(xi, y2, w, 14) { selectTab(tab.id) }
+            boldT(tab.title, x + pad / 2, mid(y2, 14, size), size, col)
+            addHit(x.toInt(), y2, w.toInt() + 1, 14) { selectTab(tab.id) }
             x += w + gap
         }
         return y2 + 18 - fy
@@ -276,13 +294,13 @@ class PvScreen(query: String?) : Screen(Component.literal("Profile Viewer")), Ha
                     if (i == ph) t.acc else t.track)
             }
         }
-        val w = UiRecorder.textWidth(msg, PvCtx.S_LG)
-        UiRecorder.textBold(msg, cx - w / 2, cy.toFloat(), PvCtx.S_LG, if (load.state == PvLoad.State.ERROR) t.bad else t.fg)
+        val w = PvCtx.width(msg, PvCtx.S_LG)
+        boldT(msg, cx - w / 2, cy.toFloat(), PvCtx.S_LG, if (load.state == PvLoad.State.ERROR) t.bad else t.fg)
         if (load.state == PvLoad.State.ERROR) {
             val bw = 50; val bx = cx - bw / 2; val by = cy + 16
             val hov = mx in bx until bx + bw && my in by until by + 15
             UiRecorder.fillRoundedRect(bx.toFloat(), by.toFloat(), bw.toFloat(), 15f, 7.5f, if (hov) t.fg else t.acc)
-            UiRecorder.textBold("Retry", bx + 13f, by + 4.5f, PvCtx.S_SM, t.accInk)
+            boldT("Retry", bx + (bw - PvCtx.width("Retry", PvCtx.S_SM)) / 2f, mid(by, 15, PvCtx.S_SM), PvCtx.S_SM, t.accInk)
             addHit(bx, by, bw, 15) { lookup(load.query ?: (Minecraft.getInstance().user.name)) }
         }
     }
@@ -307,19 +325,19 @@ class PvScreen(query: String?) : Screen(Component.literal("Profile Viewer")), Ha
         }
         val header = if (dropdown == 1) "Co-op members (${prof.members.size}) · ${prof.cuteName}" else "Profiles (${res.profiles.size})"
         val rowH = 16
-        val w = max(UiRecorder.textWidth(header, PvCtx.S_SM).toInt(), rows.maxOfOrNull { UiRecorder.textWidth(it.first.replace(Regex("§."), ""), PvCtx.S_SM).toInt() } ?: 0) + 24
+        val w = max(PvCtx.width(header, PvCtx.S_SM).toInt(), rows.maxOfOrNull { PvCtx.width(it.first, PvCtx.S_SM).toInt() + 2 } ?: 0) + 24
         val h = 20 + rows.size * rowH + 4
         val x = (dropX - w).coerceAtLeast(4)
         val y = dropY
         popupRect = PvRect(x, y, w, h)
         UiRecorder.dropShadow(x.toFloat(), y.toFloat(), w.toFloat(), h.toFloat(), 8f, 8f, 0x66000000)
         UiRecorder.roundedRectRing(x.toFloat(), y.toFloat(), w.toFloat(), h.toFloat(), 8f, 1f, opaque(t.frame), t.line)
-        UiRecorder.text(header, x + 10f, y + 7f, PvCtx.S_SM, t.mut)
+        UiRecorder.text(header, x + 10f, mid(y + 2, 16, PvCtx.S_SM), PvCtx.S_SM, t.mut)
         var ry = y + 18
         for ((label, action) in rows) {
             val hov = mx in x + 4 until x + w - 4 && my in ry until ry + rowH
             if (hov) UiRecorder.fillRoundedRect(x + 4f, ry.toFloat(), w - 8f, rowH.toFloat(), 5f, t.panel)
-            ScreenTheme.nLegacyText(label, x + 10, ry + 5, t.fg, PvCtx.S_SM)
+            lastCtx?.legacyF(label, x + 10f, mid(ry, rowH, PvCtx.S_SM), PvCtx.S_SM, t.fg) ?: UiRecorder.text(PvCtx.strip(label), x + 10f, mid(ry, rowH, PvCtx.S_SM), PvCtx.S_SM, t.fg)
             popupHits.add(Hit(x + 4, ry, w - 8, rowH, action))
             ry += rowH
         }

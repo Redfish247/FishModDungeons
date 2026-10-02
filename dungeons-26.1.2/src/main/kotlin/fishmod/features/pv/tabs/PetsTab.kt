@@ -1,6 +1,5 @@
 package fishmod.features.pv.tabs
 
-import fishmod.features.ScreenTheme
 import fishmod.features.pv.*
 
 object PetsTab : PvTab {
@@ -71,7 +70,7 @@ object PetsTab : PvTab {
 
     private fun tile(c: PvCtx, p: PvPet, x: Int, y: Int) {
         val rc = PvTables.RARITY_COLOR[p.tier] ?: 0xFF888888.toInt()
-        ScreenTheme.roundedRect(c.g, x, y, T, T, 4, (rc and 0x00FFFFFF) or 0x70000000)
+        PvCtx.smoothRect(c.g, x, y, T, T, 4f, (rc and 0x00FFFFFF) or 0x70000000, c.dp)
         c.stack(PvPets.icon(p), x + 2, y + 2)
         c.tip(x, y, T, T, tipLines(p))
     }

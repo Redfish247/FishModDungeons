@@ -29,7 +29,7 @@ class PvItem(val tag: CompoundTag) {
     private val dye: Int? = if (display.contains("color")) display.getIntOr("color", 0) else null
     private val glint = tag.getCompoundOrEmpty("tag").contains("ench")
 
-    val tooltip: List<String> get() = listOf(name) + lore
+    val tooltip: List<String> by lazy { listOf(name) + lore }
 
     val stack: ItemStack by lazy { FishDiag.guard("PvItem.1", "item build failed for $id") { build() } ?: ItemStack(Items.BARRIER) }
 
@@ -74,7 +74,9 @@ object PvPets {
         cache[key] = st
         return st
     }
-    fun tooltip(p: PvPet): List<String> {
+    private val tips = java.util.WeakHashMap<PvPet, List<String>>()
+    fun tooltip(p: PvPet): List<String> = tips.getOrPut(p) { buildTooltip(p) }
+    private fun buildTooltip(p: PvPet): List<String> {
         val out = ArrayList<String>()
         out += "§7[Lvl ${p.level.level}] ${p.rarityCode}${p.name}"
         out += "§8${PvData.pretty(p.tier)} pet" + if (p.active) " §a· Active" else ""

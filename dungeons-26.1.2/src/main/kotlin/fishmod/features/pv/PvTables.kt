@@ -5,8 +5,12 @@ import fishmod.utils.HypixelApi
 // Level tables + xp->level math for the profile viewer.
 object PvTables {
 
-    class Level(val level: Int, val progress: Double, val xpInto: Long, val xpNeeded: Long, val maxed: Boolean, val cap: Int, val totalXp: Long) {
-        val fractional get() = level + if (maxed) 0.0 else progress
+    // overflow: level is past the table/cap; progress/xpInto/xpNeeded then track the next overflow level.
+    class Level(
+        val level: Int, val progress: Double, val xpInto: Long, val xpNeeded: Long, val maxed: Boolean, val cap: Int, val totalXp: Long,
+        val overflow: Boolean = false, val overflowXp: Long = 0,
+    ) {
+        val fractional get() = level + if (maxed && !overflow) 0.0 else progress
     }
 
     private val SKILL_PER = longArrayOf(
@@ -50,6 +54,25 @@ object PvTables {
     }
 
     fun dungeon(xp: Long): Level = level(DUNGEON_PER, xp, 50)
+
+    // SkyCrypt-style overflow: past the table each level costs `step` (default: last table level).
+    fun levelWithOverflow(skill: String, xp: Long, cap: Int): Level = when (skill) {
+        "runecrafting" -> overflow(RUNECRAFTING_PER, xp, cap, RUNECRAFTING_PER.last())
+        "social" -> overflow(SOCIAL_PER, xp, cap, SOCIAL_PER.last())
+        "catacombs", "dungeon", "healer", "mage", "berserk", "archer", "tank" -> overflow(DUNGEON_PER, xp, 50, 200_000_000L)
+        else -> overflow(SKILL_PER, xp, cap, SKILL_PER.last())
+    }
+    fun dungeonOverflow(xp: Long): Level = overflow(DUNGEON_PER, xp, 50, 200_000_000L)
+
+    private fun overflow(per: LongArray, xp: Long, cap: Int, step: Long): Level {
+        val base = level(per, xp, cap)
+        // Only skills whose cap is the whole table overflow; others stay at their in-game cap.
+        if (!base.maxed || cap < per.size) return base
+        val rem = base.xpInto
+        val extra = (rem / step).toInt()
+        val into = rem - extra * step
+        return Level(per.size + extra, into.toDouble() / step, into, step, true, cap, xp, overflow = true, overflowXp = rem)
+    }
 
     private fun level(per: LongArray, xp: Long, cap: Int): Level {
         val max = minOf(cap, per.size)

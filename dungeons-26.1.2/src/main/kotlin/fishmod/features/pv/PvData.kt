@@ -58,7 +58,7 @@ class PvDungeons(
     val cata: PvTables.Level, val classes: Map<String, PvTables.Level>, val selectedClass: String?,
     val secrets: Long?, val floors: List<PvFloor>, val master: List<PvFloor>, val highestFloor: String?, val raw: JsonObject?,
 ) {
-    val classAverage get() = if (classes.isEmpty()) 0.0 else classes.values.sumOf { it.fractional } / classes.size
+    val classAverage get() = if (classes.isEmpty()) 0.0 else classes.values.sumOf { minOf(it.fractional, 50.0) } / classes.size
     val totalRuns get() = floors.sumOf { it.completions } + master.sumOf { it.completions }
 }
 
@@ -226,19 +226,27 @@ object PvData {
         if (root.bool("success") == false) { fail(load, root.str("cause") ?: "API error"); return null }
         val arr = root.getAsJsonArray("profiles")
         if (arr == null || arr.isEmpty) { fail(load, "$name has no SkyBlock profiles"); return null }
-        val profiles = arr.mapNotNull { el ->
+        val all = arr.mapNotNull { el ->
             val p = el as? JsonObject ?: return@mapNotNull null
             FishDiag.guard("PvData.2", "profile entry parse failed") { parseProfile(p) }
         }
+        // Drop profiles the player left (they no longer appear as a current member).
+        val profiles = all.filter { uuid in it.members }.ifEmpty { all }
         val res = PvResult(uuid, name, profiles)
         for (p in profiles) for (m in p.members.values) m.name = names[m.uuid]
         return res
     }
 
+    // Left/kicked co-op members keep a deletion_notice; pending invites are unconfirmed.
+    private fun removedMember(m: JsonObject): Boolean =
+        m.obj("profile", "deletion_notice") != null || m.obj("deletion_notice") != null ||
+            m.bool("profile", "coop_invitation", "confirmed") == false || m.bool("coop_invitation", "confirmed") == false
+
     private fun parseProfile(p: JsonObject): PvProfile {
         val members = LinkedHashMap<String, PvMember>()
         p.obj("members")?.entrySet()?.forEach { (uuid, el) ->
             val m = el as? JsonObject ?: return@forEach
+            if (removedMember(m)) return@forEach
             FishDiag.guard("PvData.3", "member parse failed $uuid") { parseMember(uuid, m) }?.let { members[uuid] = it }
         }
         return PvProfile(
@@ -404,11 +412,11 @@ object PvData {
                 )
             }
         }
-        val classes = PvTables.CLASSES.associateWith { c -> PvTables.dungeon(d.long("player_classes", c, "experience") ?: 0) }
+        val classes = PvTables.CLASSES.associateWith { c -> PvTables.dungeonOverflow(d.long("player_classes", c, "experience") ?: 0) }
         val f = floors("catacombs", false); val mm = floors("master_catacombs", true)
         val highest = mm.lastOrNull { it.completions > 0 }?.label ?: f.lastOrNull { it.completions > 0 }?.label
         return PvDungeons(
-            PvTables.dungeon(d.long("dungeon_types", "catacombs", "experience") ?: 0), classes,
+            PvTables.dungeonOverflow(d.long("dungeon_types", "catacombs", "experience") ?: 0), classes,
             d.str("selected_dungeon_class"), d.long("secrets"), f, mm, highest, d,
         )
     }
@@ -458,9 +466,12 @@ object PvData {
     private val museumRoots = ConcurrentHashMap<String, JsonObject>()
 
     // Museum for one member of a profile (null until loaded / not donated).
+    private val museums = ConcurrentHashMap<String, PvMuseum>()
     fun museumFor(p: PvProfile, uuid: String): PvMuseum? {
+        museums[p.id + uuid]?.let { return it }
         val m = museumRoots[p.id].obj("members", uuid) ?: return null
         return PvMuseum(m.long("value"), m.bool("appraisal"), m.obj("items")?.entrySet()?.size ?: 0, m.arr("special")?.size() ?: 0, m)
+            .also { museums[p.id + uuid] = it }
     }
 
     private fun parsePlayer(p: JsonObject): PvPlayer {

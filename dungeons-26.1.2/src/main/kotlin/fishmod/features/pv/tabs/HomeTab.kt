@@ -28,7 +28,21 @@ object HomeTab : PvTab {
     private const val ROW = 22
     private const val CARD_H = 112
 
-    override fun height(c: PvCtx, area: PvRect): Int = 18 + 18 + 24 + 4 * ROW + 6 + statLines(c, area.w) * 12 + 8 + CARD_H
+    private const val LO_W = 9 * 20 + 46
+    private const val INV_W = 9 * PvCtx.SLOT + 18
+    private fun narrow(w: Int) = w - LO_W - INV_W - 24 < 150
+    private fun minHeight(c: PvCtx, w: Int) = 20 + 18 + 24 + 4 * ROW + 6 + statLines(c, w) * 12 + 8 + CARD_H + if (narrow(w)) CARD_H + 12 else 0
+    // Fills the frame exactly when there is room (no scroll); scrolls only on tiny screens.
+    override fun height(c: PvCtx, area: PvRect): Int = maxOf(minHeight(c, area.w), area.h)
+
+    // Per-member caches (built once, not every frame).
+    private val skillLevels = java.util.WeakHashMap<PvMember, List<PvTables.Level>>()
+    private fun levels(m: PvMember) = skillLevels.getOrPut(m) {
+        m.skills.map { s -> if (s.xp == null) s.level else PvTables.levelWithOverflow(s.key, s.xp, s.level.cap) }
+    }
+    private var statsMember: PvMember? = null
+    private var statsKey = ""
+    private var statsCache: List<Pair<String, List<String>>> = emptyList()
 
     override fun render(c: PvCtx, area: PvRect, mouse: PvMouse) {
         val t = c.theme
@@ -46,8 +60,8 @@ object HomeTab : PvTab {
         val pl = c.profile.cuteName + if (c.profile.modeIcon.isNotEmpty()) " " + c.profile.modeIcon else ""
         val pw = c.textW(pl, PvCtx.S_LG) + 22
         c.ring(x, y - 1, pw, 16, 8f, if (c.hovered(x, y - 1, pw, 16)) t.panel else t.panel2, t.line)
-        c.bold(pl, x + 7, y + 3, t.fg, PvCtx.S_LG)
-        fishmod.utils.rendering.UiRecorder.chevron(x + pw - 13f, y + 7f, true, t.mut)
+        c.boldF(pl, x + 7f, c.midY(y - 1, 16, PvCtx.S_LG), t.fg, PvCtx.S_LG)
+        c.chevron(x + pw - 10f, y + 7f, true)
         val px = x
         c.hit(x, y - 1, pw, 16) { c.screen.openProfileMenu(px + pw, y + 17) }
         y += 20
@@ -79,33 +93,53 @@ object HomeTab : PvTab {
         ))
         y += 18
 
+        // Spread spare height over skill rows and section gaps so Home fills the frame.
+        val spare = (area.h - minHeight(c, area.w)).coerceAtLeast(0)
+        val skillRows = (m.skills.size + 2) / 3
+        val row = ROW + (spare * 0.6 / skillRows).toInt().coerceAtMost(12)
+        val sgap = ((spare - (row - ROW) * skillRows) / 3).coerceIn(0, 24)
+
         // SkyBlock level
         c.levelRow(area.x, y, area.w, LEVEL_ICON, "SkyBlock Level", m.sbLevel)
-        y += 24
+        y += 24 + sgap
 
-        // Skills: 3 columns
+        // Skills: 3 columns (overflow levels past the cap)
         val gap = 18
         val colW = (area.w - gap * 2) / 3
+        val lv = levels(m)
         for ((i, s) in m.skills.withIndex()) {
             val cx = area.x + (i % 3) * (colW + gap)
-            val cy = y + (i / 3) * ROW
-            c.levelRow(cx, cy, colW, SKILL_ICONS[s.key], s.name, s.level, xpKnown = !s.apiDisabled)
+            val cy = y + (i / 3) * row
+            c.levelRow(cx, cy, colW, SKILL_ICONS[s.key], s.name, lv[i], xpKnown = !s.apiDisabled)
         }
-        y += ((m.skills.size + 2) / 3) * ROW + 6
+        y += skillRows * row + 6
 
         y = statLine(c, area, y)
-        y += 8
+        y += 8 + sgap
+        // Bottom row sits on the frame's bottom edge.
+        val nar = narrow(area.w)
+        y = maxOf(y, area.y + area.h - CARD_H - if (nar) CARD_H + 12 else 0)
 
         // Cards row: Loadouts | Inventory | Combat
-        val loW = 9 * 20 + 46
-        val invW = 9 * PvCtx.SLOT + 18
-        val combW = max(160, area.w - loW - invW - 24)
-        loadoutCard(c, area.x, y, loW)
-        inventoryCard(c, area.x + loW + 12, y, invW)
-        combatCard(c, area.x + loW + invW + 24, y, combW)
+        if (nar) {
+            val loW = area.w - INV_W - 12
+            loadoutCard(c, area.x, y, loW)
+            inventoryCard(c, area.x + loW + 12, y, INV_W)
+            combatCard(c, area.x, y + CARD_H + 12, area.w)
+        } else {
+            loadoutCard(c, area.x, y, LO_W)
+            inventoryCard(c, area.x + LO_W + 12, y, INV_W)
+            combatCard(c, area.x + LO_W + INV_W + 24, y, area.w - LO_W - INV_W - 24)
+        }
     }
 
     private fun stats(c: PvCtx): List<Pair<String, List<String>>> {
+        val key = c.result.networthStatus + c.result.playerStatus + c.profile.id + c.member.accessories.selectedPower
+        if (statsMember === c.member && statsKey == key) return statsCache
+        return buildStats(c).also { statsMember = c.member; statsKey = key; statsCache = it }
+    }
+
+    private fun buildStats(c: PvCtx): List<Pair<String, List<String>>> {
         val m = c.member; val r = c.result
         val out = ArrayList<Pair<String, List<String>>>()
         m.firstJoin?.let { fj ->
@@ -149,7 +183,7 @@ object HomeTab : PvTab {
         for ((label, tip) in stats(c)) {
             val lw = c.textW(label) + 16
             if (x + lw > area.right && x > area.x) { x = area.x; y += 12 }
-            val w = c.legacy(label, x, y, PvCtx.S_MD, c.theme.mut)
+            val w = c.legacy(label, x, y, PvCtx.S_MD, c.theme.mut).coerceAtLeast(1)
             c.rect(x, y + 9, w, 1, c.theme.line)
             c.tip(x, y - 1, w, 11, tip)
             x += lw
