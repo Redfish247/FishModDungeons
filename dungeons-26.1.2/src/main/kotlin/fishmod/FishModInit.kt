@@ -64,6 +64,8 @@ import java.util.regex.Pattern
 class FishModInit : ClientModInitializer {
 
     companion object {
+        private var pvRegistered = false
+
         @JvmStatic
         private fun runLocalLookup(cmd: String, arg1: String?, arg2: String?): Int =
             runLocalLookup(cmd, arg1, arg2, null)
@@ -530,8 +532,16 @@ class FishModInit : ClientModInitializer {
 
         ClientCommandRegistrationCallback.EVENT.register(ClientCommandRegistrationCallback { dispatcher, _ ->
             fishmod.features.other.CommandAliases.registerAll(dispatcher)
+            dispatcher.register(ClientCommands.literal("pv")
+                .executes { fishmod.features.pv.PvScreen.open(null); Constants.SUCCESS }
+                .then(ClientCommands.argument("player", StringArgumentType.word())
+                    .executes { c -> fishmod.features.pv.PvScreen.open(StringArgumentType.getString(c, "player")); Constants.SUCCESS }))
             dispatcher.register(
                 ClientCommands.literal("fm")
+                    .then(ClientCommands.literal("pv")
+                        .executes { fishmod.features.pv.PvScreen.open(null); Constants.SUCCESS }
+                        .then(ClientCommands.argument("player", StringArgumentType.word())
+                            .executes { c -> fishmod.features.pv.PvScreen.open(StringArgumentType.getString(c, "player")); Constants.SUCCESS }))
                     .then(ClientCommands.literal("commandkeys").executes {
                         Minecraft.getInstance().schedule {
                             Minecraft.getInstance().setScreen(fishmod.features.ChatCommandsScreen(fishmod.features.ChatCommandsScreen.Tab.KEYS))
@@ -1295,6 +1305,16 @@ class FishModInit : ClientModInitializer {
 
         ClientPlayConnectionEvents.JOIN.register(ClientPlayConnectionEvents.Join { _, _, _ ->
             fishmod.utils.config.values.DungeonMapSettings.mapLegitMode = true
+            // /pv registered after other mods' callbacks so ours wins
+            if (!pvRegistered) {
+                pvRegistered = true
+                ClientCommandRegistrationCallback.EVENT.register(ClientCommandRegistrationCallback { dispatcher, _ ->
+                    dispatcher.register(ClientCommands.literal("pv")
+                        .executes { fishmod.features.pv.PvScreen.open(null); Constants.SUCCESS }
+                        .then(ClientCommands.argument("player", StringArgumentType.word())
+                            .executes { c -> fishmod.features.pv.PvScreen.open(StringArgumentType.getString(c, "player")); Constants.SUCCESS }))
+                })
+            }
         })
 
         HudElementRegistry.addLast(Identifier.fromNamespaceAndPath("fishmod", "soulflow_hud")) { ctx, tickCounter -> try { if (!fishmod.features.FishHudEditor.isOpen()) SoulflowHud.renderHud(ctx, tickCounter) } catch (t: Throwable) { FishDiag.fail("FishModInit.113", "soulflow_hud render failed", t) } }

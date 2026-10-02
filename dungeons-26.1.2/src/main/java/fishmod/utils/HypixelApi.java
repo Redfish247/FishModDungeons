@@ -2745,4 +2745,27 @@ public class HypixelApi {
             return 0;
         }
     }
+
+    // Profile viewer: raw proxy GET; cb gets (status, body) or (-1, null) on network failure.
+    public interface ProxyCallback { void onResult(int status, String body); }
+
+    public static void proxyGet(String pathAndQuery, ProxyCallback cb) {
+        HttpRequest req;
+        try {
+            req = HttpRequest.newBuilder()
+                .uri(URI.create(PROXY_URL + pathAndQuery))
+                .header("X-FishMod-Token", MOD_TOKEN).header("X-FishMod-Caller", callerId())
+                .header("User-Agent", "Mozilla/5.0")
+                .timeout(Duration.ofSeconds(15)).GET().build();
+        } catch (Exception e) { fishmod.utils.debug.FishDiag.fail("HypixelApi.140", "proxyGet build failed " + pathAndQuery, e); cb.onResult(-1, null); return; }
+        HTTP.sendAsync(req, HttpResponse.BodyHandlers.ofString())
+            .thenAcceptAsync(r -> cb.onResult(r.statusCode(), r.body()), API_EXECUTOR)
+            .exceptionally(e -> { cb.onResult(-1, null); return null; });
+    }
+
+    public static void getPlayer(String uuid, ProxyCallback cb) { proxyGet("/player?uuid=" + uuid, cb); }
+
+    public static void getGuild(String uuid, ProxyCallback cb) { proxyGet("/guild?player=" + uuid, cb); }
+
+    public static List<CompoundTag> decodeItems(String b64) { return decodeItemData(b64); }
 }
