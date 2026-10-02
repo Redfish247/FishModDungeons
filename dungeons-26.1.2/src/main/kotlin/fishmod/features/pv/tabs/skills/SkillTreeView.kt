@@ -90,7 +90,7 @@ internal object SkillTreeView {
         Items.OAK_SAPLING, Items.CHERRY_SAPLING, Items.PALE_OAK_SAPLING,
         Items.STRIPPED_MANGROVE_LOG, Items.OAK_LOG, Items.STRIPPED_OAK_LOG, Items.PALE_OAK_BUTTON)
 
-    private class Cell(val col: Int, val row: Int, val stack: ItemStack, val label: String?, val tip: List<String>)
+    private class Cell(val col: Int, val row: Int, val stack: ItemStack, val label: String?, val tip: List<String>, val on: Boolean = false)
     private class Built(val cells: List<Cell>, val rows: Int, val tierTxt: String, val side: List<Pair<String, String>>, val sideTips: List<List<String>>)
 
     private val cache = HashMap<String, Pair<JsonObject, Built>>()
@@ -139,7 +139,7 @@ internal object SkillTreeView {
                 }
                 tip += ""; tip += "§7Rewards"; tip.addAll(n.tooltip); tip += ""
                 tip += if (done) "§a§lUNLOCKED" else if (next) "§c§lLOCKED" else "§cRequires Tier ${n.y}"
-                cells += Cell(col, row, ItemStack(if (done) k.tier else if (next) k.tierNext else k.tierLocked), null, tip)
+                cells += Cell(col, row, ItemStack(if (done) k.tier else if (next) k.tierNext else k.tierLocked), null, tip, done)
                 continue
             }
             val raw0 = levels[n.id]
@@ -195,7 +195,7 @@ internal object SkillTreeView {
             if (has && n.type != 2) { tip += ""; tip += if (n.type == 1) (if (off) "§8Not selected" else "§a§lSELECTED") else if (off) "§c§lDISABLED" else "§a§lENABLED" }
             if (!has) { tip += ""; tip += "§cLocked" }
             if (n.type == 2 && has) n.coreLevels.take(lv).forEach { rw -> rw.forEach { l -> tokenRe.find(l.replace(Regex("§."), ""))?.let { tokensTotal += it.groupValues[1].toInt() } } }
-            cells += Cell(col, row, ItemStack(item), if (lv > 1) "$lv" else null, tip)
+            cells += Cell(col, row, ItemStack(item), if (lv > 1) "$lv" else null, tip, has)
         }
         val tokensSpent = st.int("tokens_spent", k.tree + sfx) ?: 0
         val side = ArrayList<Pair<String, String>>(); val sideTips = ArrayList<List<String>>()
@@ -241,7 +241,8 @@ internal object SkillTreeView {
         for (cell in b.cells) {
             val x = gx + (if (cell.col == 0) 0 else PITCH + TIER_GAP + (cell.col - 1) * PITCH)
             val cy = gy + cell.row * PITCH
-            c.rect(x, cy, SLOT, SLOT, t.slot, 3f)
+            // Vanilla-layer fill: an overlay rect would paint over the item icon.
+            PvCtx.smoothRect(c.g, x, cy, SLOT, SLOT, 3f, if (cell.on) 0x5055FF55 else t.slot, c.dp)
             c.stack(cell.stack, x + 1, cy + 1)
             if (cell.label != null) c.g.itemDecorations(c.font, cell.stack, x + 1, cy + 1, cell.label)
             c.tip(x, cy, SLOT, SLOT, cell.tip)
@@ -249,10 +250,11 @@ internal object SkillTreeView {
         val sx = gx + PITCH + TIER_GAP + 7 * PITCH + 14
         val sw = area.right - sx - 10
         var sy = gy + 2
+        val vx = sx + (b.side.maxOfOrNull { c.textW(it.first, PvCtx.S_SM) } ?: 0) + 8
         for (i in b.side.indices) {
             val (l, v) = b.side[i]
             c.text(l, sx, sy, t.mut, PvCtx.S_SM)
-            c.legacy(v, sx + sw - c.textW(v, PvCtx.S_SM), sy, PvCtx.S_SM)
+            c.legacy(v, vx, sy, PvCtx.S_SM, t.fg)
             c.tip(sx, sy - 1, sw, 12, b.sideTips[i])
             sy += 13
         }

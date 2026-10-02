@@ -31,11 +31,19 @@ class PvItem(val tag: CompoundTag) {
 
     val tooltip: List<String> by lazy { listOf(name) + lore }
 
-    val stack: ItemStack by lazy { FishDiag.guard("PvItem.1", "item build failed for $id") { build() } ?: ItemStack(Items.BARRIER) }
+    // Rebuilt until the items DB is loaded, else the first-frame paper fallback sticks forever.
+    private var built: ItemStack? = null
+    val stack: ItemStack get() {
+        built?.let { return it }
+        val st = FishDiag.guard("PvItem.1", "item build failed for $id") { build() } ?: ItemStack(Items.BARRIER)
+        if (fishmod.utils.networth.ItemsDb.isLoaded() || id == null) built = st
+        return st
+    }
+    private val legacyId: Int = tag.getShortOr("id", 0.toShort()).toInt()
 
     private fun build(): ItemStack {
         val base = LootIcons.icon(id)?.copy()
-            ?: if (skullTexture != null) ItemStack(Items.PLAYER_HEAD) else ItemStack(Items.PAPER)
+            ?: if (skullTexture != null) ItemStack(Items.PLAYER_HEAD) else ItemStack(LEGACY_IDS[legacyId] ?: Items.PAPER)
         if (skullTexture != null && base.item == Items.PLAYER_HEAD) {
             val props = com.google.common.collect.ImmutableMultimap.of("textures", com.mojang.authlib.properties.Property("textures", skullTexture))
             val profile = com.mojang.authlib.GameProfile(java.util.UUID.nameUUIDFromBytes(skullTexture.toByteArray()), "fmpv", com.mojang.authlib.properties.PropertyMap(props))
@@ -49,6 +57,8 @@ class PvItem(val tag: CompoundTag) {
     }
 
     companion object {
+        private val LEGACY_IDS = mapOf(262 to Items.ARROW, 373 to Items.POTION, 438 to Items.SPLASH_POTION, 397 to Items.PLAYER_HEAD,
+            349 to Items.COD, 346 to Items.FISHING_ROD, 288 to Items.FEATHER, 351 to Items.INK_SAC, 341 to Items.SLIME_BALL, 409 to Items.PRISMARINE_SHARD)
         fun decode(b64: String?): List<PvItem?> {
             if (b64.isNullOrEmpty()) return emptyList()
             return HypixelApi.decodeItems(b64).map { t -> t?.let { PvItem(it) } }

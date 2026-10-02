@@ -217,7 +217,6 @@ object InventoryTab : PvTab {
         val pad = maxOf(1, s / 16)
         ScreenTheme.roundedRect(g, x + pad / 2, y + pad / 2, s - pad, s - pad, 3, c.theme.slot)
         if (it == null) return
-        PvTables.RARITY_COLOR[it.rarity]?.let { rc -> g.fill(x + 3, y + s - 3, x + s - 3, y + s - 2, rc) }
         val k = (s - 2 * pad - 2) / 16f
         val o = (s - 16 * k) / 2f
         g.pose().pushMatrix()

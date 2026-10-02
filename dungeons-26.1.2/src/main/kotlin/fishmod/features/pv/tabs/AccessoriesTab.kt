@@ -82,7 +82,6 @@ object AccessoriesTab : PvTab {
             val rc = PvTables.RARITY_COLOR[a.item.rarity] ?: 0xFF888888.toInt()
             PvCtx.smoothRect(c.g, x, y, T, T, 4f, (rc and 0x00FFFFFF) or 0x70000000, c.dp)
             c.stack(a.item.stack, x + 2, y + 2)
-            if (a.item.recombobulated) c.rect(x + T - 5, y, 5, 5, 0xFFAA00FF.toInt(), 1.5f)
             val it = a.item
             c.tip(x, y, T, T, listOfNotNull(it.name, "${PvTables.RARITY_CODE[it.rarity] ?: "§f"}§l${(it.rarity ?: "UNKNOWN").replace('_', ' ')}",
                 if (it.recombobulated) "§dRecombobulated" else null,

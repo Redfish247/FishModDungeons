@@ -230,8 +230,6 @@ class PvCtx(
     fun item(it: PvItem?, x: Int, y: Int, size: Int = SLOT) {
         smoothRect(g, x, y, size, size, 3f, theme.slot, dp)
         if (it == null) return
-        val rc = PvTables.RARITY_COLOR[it.rarity]
-        if (rc != null) g.fill(x + 2, y + size - 2, x + size - 2, y + size - 1, rc)
         val o = (size - 16) / 2
         g.item(it.stack, x + o, y + o)
         if (it.count > 1) g.itemDecorations(font, it.stack, x + o, y + o)
