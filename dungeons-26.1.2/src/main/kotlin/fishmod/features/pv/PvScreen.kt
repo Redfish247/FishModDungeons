@@ -111,9 +111,9 @@ class PvScreen(query: String?) : Screen(Component.literal("Profile Viewer")), Ha
         ctx.fill(0, 0, vw + 1, vh + 1, 0x55000000)
 
         dp = PvCtx.devPx()
-        // Fill the screen height; width capped so very wide windows keep a sane aspect.
-        val fh = (vh - 16).coerceAtLeast(120)
-        val fw = min(vw - 16, (fh * 1.8).toInt()).coerceAtLeast(160)
+        // Centered 8:5 panel like the template, ~85% of the screen.
+        val fw = min(vw * 0.85, vh * 0.85 * 1.6).toInt().coerceAtLeast(320).coerceAtMost(vw - 16)
+        val fh = (fw / 1.6).toInt().coerceAtMost(vh - 16)
         val fx = (vw - fw) / 2; val fy = (vh - fh) / 2
         PvCtx.smoothRect(ctx, fx - 3, fy - 1, fw + 6, fh + 6, 17f, 0x1A000000, dp)
         PvCtx.smoothRect(ctx, fx - 1, fy - 1, fw + 2, fh + 2, 15f, t.line, dp)
