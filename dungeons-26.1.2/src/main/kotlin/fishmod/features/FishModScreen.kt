@@ -144,6 +144,8 @@ class FishModScreen : Screen(Component.literal("FishMod")), HasUiOverlay {
             f.sub.add(SliderIntSetting("Waypoint Title Scale %", "100% = default size", FishSettings::guiScaleWaypoint, 50, 150, 5))
             f.sub.add(SliderIntSetting("Credits Scale %", "100% = default size", FishSettings::guiScaleCredits, 50, 150, 5))
             f.sub.add(SliderIntSetting("Diana Profit Scale %", "100% = default size", FishSettings::guiScaleDianaProfit, 50, 150, 5))
+            f.sub.add(SliderIntSetting("Profile Viewer Scale %", "100% = default size", FishSettings::guiScaleProfileViewer, 50, 150, 5))
+            f.sub.add(SliderIntSetting("Profile Viewer Size %", "Panel size as % of the screen (keeps 8:5)", FishSettings::pvSizePct, 50, 100, 5))
             general.features.add(f)
         }
         run {
