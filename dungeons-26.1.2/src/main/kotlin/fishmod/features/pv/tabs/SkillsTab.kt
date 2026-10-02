@@ -2,6 +2,9 @@ package fishmod.features.pv.tabs
 
 import com.google.gson.JsonObject
 import fishmod.features.pv.*
+import fishmod.features.pv.tabs.skills.ShardsView
+import fishmod.features.pv.tabs.skills.SkillTreeView
+import fishmod.features.pv.tabs.skills.Overflow
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.Items
 import kotlin.math.max
@@ -13,7 +16,6 @@ object SkillsTab : PvTab {
 
     // Content height measured on the last render (one-frame lag is fine for scrolling).
     private val lastH = HashMap<Int, Int>()
-    private var shardFilter = 0 // 0 all, 1 unlocked, 2 missing
 
     private val ICONS by lazy {
         mapOf(
@@ -88,126 +90,13 @@ object SkillsTab : PvTab {
 
     private fun skillRow(c: PvCtx, x: Int, y: Int, w: Int, key: String, extra: List<String> = emptyList()): Int {
         val s = c.member.skills.firstOrNull { it.key == key } ?: return y
-        c.levelRow(x, y, w, ICONS[key], s.name, s.level, extra, !s.apiDisabled)
+        val lv = Overflow.level(key, s.xp, s.level)
+        c.levelRow(x, y, w, ICONS[key], s.name, lv, if (lv === s.level) extra else extra + Overflow.tip(lv), !s.apiDisabled)
         return y + 26
     }
 
     private fun n(v: Number?): String = if (v == null) "?" else full(v.toDouble())
     private fun pretty(s: String) = PvData.pretty(s)
-
-    // ---------- skill trees ----------
-    // Node: display name, api ids, max level, kind (0 perk, 1 ability, 2 peak).
-    private class Node(val name: String, val ids: List<String>, val max: Int, val kind: Int)
-
-    private fun idOf(name: String): String = name.lowercase().replace("'", "").replace(Regex(" ii$"), "_2").replace(Regex(" i$"), "_1")
-        .replace(Regex("[^a-z0-9_ ]"), "").trim().replace(' ', '_')
-
-    private fun node(spec: String?): Node? {
-        if (spec == null) return null
-        val p = spec.split('|')
-        val name = p[0]
-        val ids = listOf(idOf(name)) + (p.getOrNull(1)?.split(',')?.filter { it.isNotBlank() } ?: emptyList())
-        val kind = when (p.getOrNull(3)) { "a" -> 1; "p" -> 2; else -> 0 }
-        val mx = p.getOrNull(2)?.toIntOrNull() ?: if (kind == 1) 1 else 50
-        return Node(name, ids, mx, kind)
-    }
-
-    // Rows listed top (tier 10) to bottom (tier 1); 7 columns. Matches the approved prototype layout.
-    private val HOTM: List<List<Node?>> = listOf(
-        listOf(null, "Gemstone Infusion||1|a", null, "Gifts from the Departed||100", null, "Hungry for More|dead_mans_chest|50", null),
-        listOf(null, "Metal Head||20", null, "Rags to Riches|rags_of_riches|50", null, "Eager Adventurer||100", null),
-        listOf("Miner's Blessing||30", null, "No Stone Unturned||50", null, "Strong Arm||100", null, "Steady Hand||100"),
-        listOf("Anomalous Desire||1|a", null, "Blockhead||20", null, "Gemstone Fortune|gem_lover|100", null, "Maniac Miner||1|a"),
-        listOf(null, "Professional||140", null, "Mole||200", null, "Fortunate|mining_fortune_2|20", null),
-        listOf("Front Loaded||1", null, "Great Explorer||20", "Peak of the Mountain|special_0|10|p", "Daily Grind||1", null, "Lonesome Miner||45"),
-        listOf(null, "Seasoned Mineman|mining_experience|100", null, "Efficient Miner||100", null, "Orbiter|experience_orbs|80", null),
-        listOf("Pickobulus|pickaxe_toss|1|a", null, "Titanium Insanium||50", "Mining Fortune||50", "Quick Forge|forge_time|20", null, "Mining Speed Boost||1|a"),
-        listOf(null, "Mining Madness||1", null, "Mining Speed II||50", null, "Daily Powder||1", null),
-        listOf(null, null, null, "Mining Speed||50", null, null, null),
-    ).map { r -> r.map { node(it) } }
-
-    private val HOTF: List<List<Node?>> = listOf(
-        listOf(null, "Galatea's Gift||1|a", null, "Mangrove Mastery||50", null, "Fig Fanatic||50", null),
-        listOf("Forest Strength||50", null, "Sweep II||50", null, "Hunter's Luck||50", null, "Tree Whisperer||50"),
-        listOf(null, "Lottery||20", null, "Foraging Wisdom||50", null, "Daily Wishes||1", null),
-        listOf("Woodsplitter||1|a", null, "Axe Sharpening||20", null, "Gift of the Forest||20", null, "Moonlit Harvest||20"),
-        listOf(null, "Pristine Bark||50", null, "Forest Essence||50", null, "Tree Rings||50", null),
-        listOf("Leaf Sweep||1", "Hunting Fortune||50", "Sweep||50", "Center of the Forest|special_0|7|p", "Foraging Fortune II||50", "Shard Luck||50", "Lumberjack||1|a"),
-        listOf(null, "Foraging Speed||50", null, "Efficient Chopper||50", null, "Seasoned Forager||50", null),
-        listOf("Axed||1|a", null, "Foraging Fortune||50", null, "Forager||50", null, "Treecapitator Boost||20"),
-        listOf(null, "Sweep I||50", null, "Strong Arms||50", null, "Whispers Power||50", null),
-        listOf(null, null, null, "Foraging Speed I||50", null, null, null),
-    ).map { r -> r.map { node(it) } }
-
-    private val HOTM_XP = longArrayOf(0, 3_000, 12_000, 37_000, 97_000, 197_000, 347_000, 557_000, 847_000, 1_247_000)
-
-    private const val CELL = 15
-    private const val GAP = 3
-
-    private fun treeCard(c: PvCtx, area: PvRect, y: Int, title: String, tree: List<List<Node?>>, data: PvSkillTree?, tierFromXp: Boolean): Int {
-        val t = c.theme
-        val gridW = 7 * (CELL + GAP) - GAP
-        val gridH = tree.size * (CELL + GAP) - GAP
-        val h = 21 + gridH + 14
-        val nodes = data?.nodes ?: emptyMap()
-        val usedIds = HashSet<String>()
-        val unlocked = if (tierFromXp && data?.xp != null) HOTM_XP.count { data.xp >= it }
-            else tree.indices.filter { ri -> tree[ri].any { nd -> nd != null && nd.ids.any { (nodes[it] ?: 0) > 0 } } }.maxOfOrNull { tree.size - it } ?: 0
-        c.card(area.x, y, area.w, h, null)
-        c.bold(title, area.x + 9, y + 7, t.fg, PvCtx.S_LG)
-        c.text("Tier $unlocked / ${tree.size}", area.x + 13 + c.textW(title, PvCtx.S_LG), y + 8, t.mut, PvCtx.S_SM)
-        val gx = area.x + 12; val gy = y + 23
-        var maxed = 0; var spent = 0
-        for ((ri, row) in tree.withIndex()) {
-            val tier = tree.size - ri
-            for ((ci, nd) in row.withIndex()) {
-                if (nd == null) continue
-                val lv = nd.ids.firstNotNullOfOrNull { nodes[it] } ?: 0
-                usedIds += nd.ids
-                val mx = max(nd.max, lv)
-                val locked = lv == 0 && tier > unlocked
-                val isMax = lv > 0 && lv >= mx
-                if (isMax) maxed++
-                spent += lv
-                val x = gx + ci * (CELL + GAP); val cy = gy + ri * (CELL + GAP)
-                val fill = when { isMax -> t.gold; lv > 0 -> t.acc; else -> t.track }
-                val r = if (nd.kind == 2) CELL / 2f else 3f
-                c.ring(x, cy, CELL, CELL, r, fill, if (nd.kind == 1) t.fg else if (locked) t.line else fill)
-                val lbl = when { nd.kind == 1 -> "A"; nd.kind == 2 -> "$lv"; lv > 0 && !isMax -> "$lv"; else -> "" }
-                if (lbl.isNotEmpty()) {
-                    val ink = if (lv > 0) t.accInk else t.mut
-                    c.text(lbl, x + (CELL - c.textW(lbl, PvCtx.S_XS)) / 2, cy + 5, ink, PvCtx.S_XS)
-                }
-                val tip = ArrayList<String>()
-                tip += "§f${nd.name} §8· Tier $tier"
-                tip += "§7" + when (nd.kind) { 1 -> "Ability"; 2 -> "Core perk"; else -> "Perk" }
-                tip += "§7Level: " + (if (isMax) "§6" else "§a") + "$lv §7/ $mx"
-                if (locked) tip += "§cLocked: reach tier $tier"
-                if (nd.kind == 1 && lv > 0) tip += if (nd.ids.contains(data?.selectedAbility?.lowercase())) "§aSELECTED" else "§8Not selected"
-                c.tip(x, cy, CELL, CELL, tip)
-            }
-        }
-        // Side panel
-        val sx = gx + gridW + 18; val sw = area.right - sx - 12
-        var sy = gy
-        val other = nodes.filterKeys { it !in usedIds && !it.startsWith("toggle") }
-        val rows = listOfNotNull(
-            KV("Perks maxed", "$maxed"),
-            KV("Levels spent", "$spent", listOfNotNull(data?.tokensSpent?.let { "§7Tokens spent: §f$it" })),
-            KV("Selected ability", data?.selectedAbility?.let { pretty(it) } ?: "None"),
-            data?.xp?.let { KV("Tree XP", fmt(it.toDouble()), listOf("§7${full(it.toDouble())} XP")) },
-            if (other.isNotEmpty()) KV("Other perks", "${other.size}", listOf("§fNodes not on this layout") + other.map { (k, v) -> "§7${pretty(k)}: §f$v" }) else null,
-        )
-        for (r in rows) { kv(c, sx, sy, sw, r); sy += ROW + 2 }
-        sy += 6
-        for ((col, lbl) in listOf(t.gold to "Maxed", t.acc to "Leveled", t.track to "Locked")) {
-            c.ring(sx, sy, 8, 8, 2f, col, col)
-            c.text(lbl, sx + 12, sy + 1, t.mut, PvCtx.S_XS)
-            sy += 11
-        }
-        if (data == null) c.text("No tree data", sx, sy + 4, t.bad, PvCtx.S_SM)
-        return y + h + 8
-    }
 
     // ---------- Mining ----------
     private val CRYSTALS = listOf("jade", "amber", "amethyst", "sapphire", "topaz")
@@ -215,7 +104,7 @@ object SkillsTab : PvTab {
     private fun mining(c: PvCtx, area: PvRect): Int {
         val m = c.member; val raw = m.raw
         var y = skillRow(c, area.x, area.y, area.w, "mining")
-        y = treeCard(c, area, y, "Heart of the Mountain", HOTM, m.hotm, true)
+        y = SkillTreeView.card(c, area, y, SkillTreeView.HOTM)
 
         val core = raw.obj("mining_core")
         val cry = core.obj("crystals")
@@ -356,61 +245,15 @@ object SkillsTab : PvTab {
     }
 
     // ---------- Foraging & Hunting ----------
-    private val SHARDS = listOf(
-        "Grove" to "COMMON", "Mist" to "COMMON", "Flash" to "COMMON", "Phanpyre" to "COMMON", "Cod" to "COMMON", "Hideonleaf" to "COMMON",
-        "Verdant" to "COMMON", "Chill" to "COMMON", "Birries" to "UNCOMMON", "Mossybit" to "UNCOMMON", "Lapis Zombie" to "UNCOMMON",
-        "Sea Archer" to "UNCOMMON", "Kada Knight" to "UNCOMMON", "Bambuleaf" to "UNCOMMON", "Salmon" to "UNCOMMON", "Termite" to "UNCOMMON",
-        "Bal" to "RARE", "Lunar Moth" to "RARE", "Glacite Walker" to "RARE", "Cinderbat" to "RARE", "Pest" to "RARE", "Lord Jawbus" to "RARE",
-        "Bezal" to "RARE", "Yog" to "RARE", "Ent" to "EPIC", "Galaxy Fish" to "EPIC", "Lapis Creeper" to "EPIC", "Tiamat" to "EPIC",
-        "Magma Slug" to "EPIC", "Xyz" to "EPIC", "Wartybug" to "EPIC", "Starborn" to "LEGENDARY", "Vanquisher" to "LEGENDARY",
-        "Thunder" to "LEGENDARY", "Daemon" to "LEGENDARY", "Leviathan" to "LEGENDARY", "Wither" to "LEGENDARY", "Prince" to "LEGENDARY",
-        "Galaxy Moth" to "LEGENDARY", "Kraken" to "LEGENDARY",
-    )
-
     private fun foraging(c: PvCtx, area: PvRect): Int {
         val m = c.member
-        var y = skillRow(c, area.x, area.y, area.w, "foraging", listOf("§8Cap from PvTables (54)"))
-        y = treeCard(c, area, y, "Heart of the Forest", HOTF, m.hotf, false)
+        var y = skillRow(c, area.x, area.y, area.w, "foraging", emptyList())
+        y = SkillTreeView.card(c, area, y, SkillTreeView.HOTF)
         y = skillRow(c, area.x, y, area.w, "hunting")
         return shardsCard(c, area, y)
     }
 
-    private fun shardsCard(c: PvCtx, area: PvRect, y: Int): Int {
-        val t = c.theme
-        val attrs = c.member.attributes
-        val norm = attrs.mapKeys { it.key.lowercase().replace(Regex("^shard_"), "") }
-        val known = SHARDS.map { (nm, rar) -> Triple(nm, rar, norm[idOf(nm)] ?: 0L) }
-        val extra = norm.filterKeys { k -> known.none { idOf(it.first) == k } }.map { (k, v) -> Triple(pretty(k), "", v) }
-        val all = known + extra
-        val own = all.count { it.third > 0 }
-        val list = all.filter { when (shardFilter) { 1 -> it.third > 0; 2 -> it.third == 0L; else -> true } }
-        val chips = list.map { (nm, rar, cnt) ->
-            val code = PvTables.RARITY_CODE[rar] ?: "§7"
-            KV((if (cnt > 0) code else "§8") + nm + if (cnt > 0) " §f$cnt" else "", "", listOfNotNull(
-                "$code$nm Shard", if (rar.isNotEmpty()) "$code$rar" else null,
-                if (cnt > 0) "§7Owned / absorbed: §f$cnt" else "§7Not caught yet",
-                if (cnt > 0) "§7Attribute level: §f$cnt" else null))
-        }
-        val w = area.w
-        val ch = chipRows(c, chips, w - 18) * 16
-        val h = 21 + 18 + max(ch, 12) + 6
-        c.card(area.x, y, w, h, null)
-        c.bold("Attribute Shards", area.x + 9, y + 7, t.fg, PvCtx.S_LG)
-        c.text("$own / ${all.size} unlocked", area.x + 15 + c.textW("Attribute Shards", PvCtx.S_LG), y + 8, t.mut, PvCtx.S_SM)
-        var px = area.x + 9
-        for ((i, lbl) in listOf("All ${all.size}", "Unlocked $own", "Missing ${all.size - own}").withIndex())
-            px += c.pill(px, y + 21, lbl, shardFilter == i) { shardFilter = i } + 4
-        var cx = area.x + 9; var cy = y + 39
-        if (chips.isEmpty()) c.text("Nothing here.", cx, cy, t.mut, PvCtx.S_SM)
-        for (k in chips) {
-            val cw = c.textW(k.label, PvCtx.S_SM) + 16
-            if (cx + cw > area.x + w - 9 && cx > area.x + 9) { cx = area.x + 9; cy += 16 }
-            val pw = c.pill(cx, cy, k.label, false)
-            c.tip(cx, cy, pw, 13, k.tip)
-            cx += cw
-        }
-        return y + h + 8
-    }
+    private fun shardsCard(c: PvCtx, area: PvRect, y: Int): Int = ShardsView.card(c, area, y)
 
     // ---------- Enchanting ----------
     private fun enchanting(c: PvCtx, area: PvRect): Int {

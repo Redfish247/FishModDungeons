@@ -1,6 +1,7 @@
 package fishmod.features.pv.tabs
 
 import com.google.gson.JsonObject
+import fishmod.features.croesus.LootIcons
 import fishmod.features.pv.*
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.Items
@@ -12,24 +13,52 @@ object MiscTab : PvTab {
 
     private const val GAP = 10
     private const val ROW = 11
-    private const val TILE_W = 118
-    private const val TILE_H = 30
+    private const val TILE_MIN_W = 132
+    private const val TILE_H = 32
+    private const val TGAP = 6
 
     private class Row(val k: String, val v: String, val tip: List<String> = emptyList())
     private class Card(val title: String, val rows: List<Row>) { val h get() = 21 + rows.size * ROW + 5 }
-    private class Cons(val name: String, val icon: ItemStack, val n: Int, val max: Int)
+    private class ConsDef(val id: String, val name: String, val max: Int, val fallback: ItemStack, val path: Array<String>)
+    private class Cons(val def: ConsDef, val n: Int) {
+        val maxed = n >= def.max
+        val amount = "${n.coerceAtMost(def.max)} / ${def.max}"
+        val tip = listOf("§f${def.name}", "§7Consumed: ${if (maxed) "§6" else "§f"}$amount")
+        var shownName = def.name
+        var shownW = -1
+    }
 
-    private fun consumables(m: PvMember): List<Cons> {
-        val r = m.raw
-        return listOf(
-            Cons("Teleporter Pill", ItemStack(Items.ENDER_PEARL), if (r.bool("item_data", "teleporter_pill_consumed") == true) 1 else 0, 1),
-            Cons("Metaphysical Serum", ItemStack(Items.POTION), r.int("experimentation", "serums_drank") ?: 0, 3),
-            Cons("Reaper Peppers", ItemStack(Items.RED_DYE), r.int("player_data", "reaper_peppers_eaten") ?: 0, 5),
-            Cons("McGrubber's Burgers", ItemStack(Items.COOKED_BEEF), r.int("rift", "castle", "grubber_stacks") ?: 0, 5),
-            Cons("Wiggling Larvae", ItemStack(Items.SLIME_BALL), r.int("garden_player_data", "larva_consumed") ?: 0, 15),
-            Cons("Refined Jyrre", ItemStack(Items.EXPERIENCE_BOTTLE), r.int("winter_player_data", "refined_jyrre_uses") ?: 0, 20),
-            Cons("Refined Dark Cacao", ItemStack(Items.COCOA_BEANS), r.int("events", "easter", "refined_dark_cacao_truffles") ?: 0, 20),
+    // Permanent stat-boost consumables tracked in the member JSON.
+    private val CONS_DEFS by lazy {
+        listOf(
+            ConsDef("REAPER_PEPPER", "Reaper Pepper", 5, ItemStack(Items.RED_DYE), arrayOf("player_data", "reaper_peppers_eaten")),
+            ConsDef("ISOPOD_HUSK", "Isopod Husk", 5, ItemStack(Items.PAPER), arrayOf("player_data", "isopod_husks_eaten")),
+            ConsDef("BEE_SALIVA", "Bee Saliva", 5, ItemStack(Items.HONEY_BOTTLE), arrayOf("player_data", "bee_saliva_eaten")),
+            ConsDef("METAPHYSICAL_SERUM", "Metaphysical Serum", 3, ItemStack(Items.POTION), arrayOf("experimentation", "serums_drank")),
+            ConsDef("MCGRUBBER_BURGER", "McGrubber's Burger", 5, ItemStack(Items.COOKED_BEEF), arrayOf("rift", "castle", "grubber_stacks")),
+            ConsDef("WRIGGLING_LARVA", "Wriggling Larva", 5, ItemStack(Items.SLIME_BALL), arrayOf("garden_player_data", "larva_consumed")),
+            ConsDef("REFINED_BOTTLE_OF_JYRRE", "Refined Bottle of Jyrre", 5, ItemStack(Items.EXPERIENCE_BOTTLE), arrayOf("winter_player_data", "refined_jyrre_uses")),
+            ConsDef("REFINED_DARK_CACAO_TRUFFLE", "Refined Dark Cacao Truffle", 5, ItemStack(Items.COCOA_BEANS), arrayOf("events", "easter", "refined_dark_cacao_truffles")),
         )
+    }
+
+    private class Built(val cons: List<Cons>, val cards: List<Card>, val kills: List<Pair<String, String>>, val deaths: List<Pair<String, String>>, val totals: String)
+    private var builtKey: Any? = null
+    private var built: Built? = null
+    private var layW = -1
+    private var layKey: Any? = null
+    private var lay: List<Triple<Card, Int, Int>> = emptyList()
+    private var layH = 0
+
+    private fun built(c: PvCtx): Built {
+        val m = c.member
+        built?.let { if (builtKey === m) return it }
+        val ps = m.playerStats
+        fun ranked(key: String) = kd(ps, key).mapIndexed { j, e -> "§8#${j + 1} §7${PvData.pretty(e.first)}" to full(e.second) }
+        val b = Built(CONS_DEFS.map { Cons(it, m.raw.int(*it.path) ?: 0) }, cards(c), ranked("kills"), ranked("deaths"),
+            "Total Kills: §f${full(ps.num("kills", "total") ?: 0.0)}    §7Total Deaths: §f${full(ps.num("deaths", "total") ?: 0.0)}")
+        builtKey = m; built = b
+        return b
     }
 
     private fun kd(ps: JsonObject?, key: String): List<Pair<String, Double>> =
@@ -38,7 +67,7 @@ object MiscTab : PvTab {
     private fun cards(c: PvCtx): List<Card> {
         val m = c.member; val r = m.raw; val ps = m.playerStats
         fun n(vararg p: String) = ps.num(*p)
-        fun row(k: String, v: Double?, big: Boolean = false) = v?.takeIf { it != 0.0 }?.let { Row(k, if (big) fmt(it) else full(it), if (big) listOf("§f${full(it)}") else emptyList()) }
+        fun row(k: String, v: Double?, big: Boolean = false) = v?.takeIf { it != 0.0 }?.let { Row(k, if (big) fmt(it) else full(it), if (big) listOf("§f$k", "§7${full(it)}") else emptyList()) }
         fun card(t: String, vararg rows: Row?) = Card(t, rows.filterNotNull())
         val out = ArrayList<Card>()
         out += card("Economy", row("Purse", m.purse, true), row("Bank", c.profile.bank, true),
@@ -49,7 +78,7 @@ object MiscTab : PvTab {
             row("Most Magma Damage Dealt", n("winter", "most_magma_damage_dealt")), row("Most Cannonballs Hit", n("winter", "most_cannonballs_hit")))
         val df = ps.obj("end_island", "dragon_fight")
         out += card("Dragons", row("Most Damage", df.num("most_damage", "best"), true),
-            df.num("fastest_kill", "best")?.let { Row("Fastest Kill", "%.1fs".format(it / 1000), df.numMap("fastest_kill").filterKeys { it != "best" }.map { (k, v) -> "§7${PvData.pretty(k)}: §f${"%.1fs".format(v / 1000)}" }) },
+            df.num("fastest_kill", "best")?.let { Row("Fastest Kill", "%.1fs".format(it / 1000), listOf("§fFastest Kill") + df.numMap("fastest_kill").filterKeys { it != "best" }.map { (k, v) -> "§7${PvData.pretty(k)}: §f${"%.1fs".format(v / 1000)}" }) },
             row("Summoned", df.numMap("amount_summoned").values.sum()), row("Ender Crystals", df.num("ender_crystals_destroyed")),
             row("Last Hits", ps.num("kills", "ender_dragon")), row("Deaths", ps.num("deaths", "ender_dragon")))
         out += card("Endstone Protector", row("Kills", ps.num("kills", "corrupted_protector")), row("Deaths", ps.num("deaths", "corrupted_protector")))
@@ -69,8 +98,7 @@ object MiscTab : PvTab {
         }.orEmpty()
         out += Card("Claimed Items", claimed)
         out += card("Uncategorized", row("Soulflow", r.num("item_data", "soulflow"), true),
-            row("Items Fished", n("items_fished", "total")), row("Glowing Mushrooms Broken", n("glowing_mushrooms_broken")),
-            row("Highest Damage", n("highest_damage"), true))
+            row("Items Fished", n("items_fished", "total")), row("Glowing Mushrooms Broken", n("glowing_mushrooms_broken")))
         return out.filter { it.rows.isNotEmpty() }
     }
 
@@ -84,66 +112,86 @@ object MiscTab : PvTab {
         return Card("Upgrades", UPGRADES.map { (k, mx) -> val t = tiers[k] ?: 0; Row(PvData.pretty(k), (if (t >= mx) "§6" else "§f") + "$t / $mx") })
     }
 
-    private fun layout(c: PvCtx, area: PvRect): Pair<List<Triple<Card, Int, Int>>, Int> {
-        val cols = max(1, (area.w + GAP) / (170 + GAP))
+    private fun cols(w: Int) = max(1, (w + GAP) / (170 + GAP))
+
+    // Masonry placement, cached per member + width. Offsets are relative to the cards' origin.
+    private fun layout(c: PvCtx, area: PvRect): List<Triple<Card, Int, Int>> {
+        if (layW == area.w && layKey === c.member) return lay
+        val cols = cols(area.w)
         val cw = (area.w - GAP * (cols - 1)) / cols
         val hs = IntArray(cols)
         val out = ArrayList<Triple<Card, Int, Int>>()
-        for (cd in cards(c)) {
-            val i = hs.indices.minBy { hs[it] }
-            out += Triple(cd, area.x + i * (cw + GAP), hs[i]); hs[i] += cd.h + GAP
+        for (cd in built(c).cards) {
+            var i = 0
+            for (k in 1 until cols) if (hs[k] < hs[i]) i = k
+            out += Triple(cd, i * (cw + GAP), hs[i]); hs[i] += cd.h + GAP
         }
-        return out to (hs.maxOrNull() ?: 0)
+        lay = out; layH = max(0, (hs.maxOrNull() ?: 0) - GAP); layW = area.w; layKey = c.member
+        return out
     }
 
-    private fun tilesH(area: PvRect): Int { val per = max(1, (area.w - 18 + 6) / (TILE_W + 6)); return 21 + ((7 + per - 1) / per) * (TILE_H + 6) + 4 }
-    private fun killsH(c: PvCtx): Int = 21 + 14 + max(kd(c.member.playerStats, "kills").size, kd(c.member.playerStats, "deaths").size) * ROW + 16
+    private fun perRow(w: Int) = max(1, (w - 18 + TGAP) / (TILE_MIN_W + TGAP))
+    private fun tilesH(c: PvCtx, area: PvRect): Int {
+        val per = perRow(area.w); val n = built(c).cons.size
+        return 21 + ((n + per - 1) / per) * (TILE_H + TGAP) - TGAP + 9
+    }
+    private fun killsH(c: PvCtx): Int { val b = built(c); return 21 + 14 + 12 + max(b.kills.size, b.deaths.size) * ROW + 6 }
 
-    override fun height(c: PvCtx, area: PvRect) = tilesH(area) + GAP + killsH(c) + GAP + layout(c, area).second
+    override fun height(c: PvCtx, area: PvRect): Int { layout(c, area); return tilesH(c, area) + GAP + killsH(c) + GAP + layH }
 
     override fun render(c: PvCtx, area: PvRect, mouse: PvMouse) {
-        val t = c.theme; val m = c.member
+        val t = c.theme; val b = built(c)
         var y = area.y
-        // Consumables
-        val th = tilesH(area)
+        // Consumables: wrapping grid, tiles stretch to fill each row.
+        val th = tilesH(c, area)
         val cy0 = c.card(area.x, y, area.w, th, "Consumables")
-        var tx = area.x + 9; var ty = cy0
-        for (cs in consumables(m)) {
-            if (tx + TILE_W > area.right - 9) { tx = area.x + 9; ty += TILE_H + 6 }
-            val maxed = cs.n >= cs.max
-            c.panel(tx, ty, TILE_W, TILE_H, 5, t.panel2, if (maxed) t.gold else t.line)
-            c.stack(cs.icon, tx + 6, ty + 7)
-            c.text(cs.name, tx + 26, ty + 6, t.fg, PvCtx.S_SM)
-            c.bold("${cs.n.coerceAtMost(cs.max)} / ${cs.max}", tx + 26, ty + 17, if (maxed) t.gold else t.mut, PvCtx.S_SM)
-            tx += TILE_W + 6
+        val per = perRow(area.w)
+        val tw = (area.w - 18 - TGAP * (per - 1)) / per
+        for ((i, cs) in b.cons.withIndex()) {
+            val tx = area.x + 9 + (i % per) * (tw + TGAP)
+            val ty = cy0 + (i / per) * (TILE_H + TGAP)
+            val col = if (cs.maxed) t.gold else t.fg
+            c.panel(tx, ty, tw, TILE_H, 5, t.panel2, if (cs.maxed) t.gold else t.line)
+            c.stack(LootIcons.icon(cs.def.id) ?: cs.def.fallback, tx + 6, ty + (TILE_H - 16) / 2)
+            val maxW = tw - 34
+            if (cs.shownW != maxW) {
+                var nm = cs.def.name
+                while (nm.length > 3 && c.textW(nm, PvCtx.S_SM) > maxW) nm = nm.dropLast(2) + "…"
+                cs.shownName = nm; cs.shownW = maxW
+            }
+            c.bold(cs.shownName, tx + 28, ty + 6, col, PvCtx.S_SM)
+            c.text(cs.amount, tx + 28, ty + 16, if (cs.maxed) t.gold else t.mut, PvCtx.S_SM)
+            c.bar(tx + 28, ty + TILE_H - 6, tw - 36, 2, cs.n.toDouble() / cs.def.max, if (cs.maxed) t.gold else t.acc)
+            c.tip(tx, ty, tw, TILE_H, cs.tip)
         }
         y += th + GAP
-        // Kills
-        val ps = m.playerStats
+        // Kills / deaths
         val kh = killsH(c)
         var ky = c.card(area.x, y, area.w, kh, "Kills")
-        c.legacy("Total Kills: §f${full(ps.num("kills", "total") ?: 0.0)}    §7Total Deaths: §f${full(ps.num("deaths", "total") ?: 0.0)}", area.x + 9, ky, PvCtx.S_MD, t.mut)
+        c.legacy(b.totals, area.x + 9, ky, PvCtx.S_MD, t.mut)
         ky += 14
         val half = (area.w - 18 - GAP) / 2
-        for ((i, key) in listOf("kills", "deaths").withIndex()) {
+        for (i in 0..1) {
             val cx = area.x + 9 + i * (half + GAP)
-            c.bold(PvData.pretty(key), cx, ky, t.fg, PvCtx.S_SM)
-            for ((j, e) in kd(ps, key).withIndex()) {
+            c.bold(if (i == 0) "Kills" else "Deaths", cx, ky, t.fg, PvCtx.S_SM)
+            val list = if (i == 0) b.kills else b.deaths
+            for ((j, e) in list.withIndex()) {
                 val ry = ky + 12 + j * ROW
-                c.legacy("§8#${j + 1} §7${PvData.pretty(e.first)}", cx, ry, PvCtx.S_SM)
-                val v = full(e.second); c.text(v, cx + half - c.textW(v, PvCtx.S_SM), ry, t.fg, PvCtx.S_SM)
+                c.legacy(e.first, cx, ry, PvCtx.S_SM)
+                c.text(e.second, cx + half - c.textW(e.second, PvCtx.S_SM), ry, t.fg, PvCtx.S_SM)
             }
         }
         y += kh + GAP
         // Masonry cards
-        val cols = max(1, (area.w + GAP) / (170 + GAP))
+        val cols = cols(area.w)
         val cw = (area.w - GAP * (cols - 1)) / cols
-        for ((cd, x, oy) in layout(c, area).first) {
+        for ((cd, ox, oy) in layout(c, area)) {
+            val x = area.x + ox
             var ry = c.card(x, y + oy, cw, cd.h, cd.title)
             for (rw in cd.rows) {
                 c.text(rw.k, x + 9, ry, t.mut, PvCtx.S_SM)
                 val vw = c.textW(rw.v, PvCtx.S_SM); c.legacy(rw.v, x + cw - 9 - vw, ry, PvCtx.S_SM)
-                c.tip(x + 4, ry - 1, cw - 8, ROW, if (rw.tip.isEmpty()) emptyList() else listOf("§f${rw.k}") + rw.tip)
+                if (rw.tip.isNotEmpty()) c.tip(x + 4, ry - 1, cw - 8, ROW, rw.tip)
                 ry += ROW
             }
         }
