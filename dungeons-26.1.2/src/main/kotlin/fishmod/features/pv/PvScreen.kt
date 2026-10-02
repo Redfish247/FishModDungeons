@@ -112,8 +112,9 @@ class PvScreen(query: String?) : Screen(Component.literal("Profile Viewer")), Ha
         ctx.fill(0, 0, vw + 1, vh + 1, 0x55000000)
 
         dp = PvCtx.devPx()
-        // Centered 8:5 panel like the template, ~85% of the screen.
-        val fw = min(vw * 0.85, vh * 0.85 * 1.6).toInt().coerceAtLeast(320).coerceAtMost(vw - 16)
+        // Centered 8:5 panel; size = GUI Settings "Profile Viewer Size" % of screen.
+        val sz = (if (fishmod.utils.config.values.FishSettings.guiSettings) fishmod.utils.config.values.FishSettings.pvSizePct else 85).coerceIn(50, 100) / 100.0
+        val fw = min(vw * sz, vh * sz * 1.6).toInt().coerceAtLeast(320).coerceAtMost(vw - 16)
         val fh = (fw / 1.6).toInt().coerceAtMost(vh - 16)
         val fx = (vw - fw) / 2; val fy = (vh - fh) / 2
         PvCtx.smoothRect(ctx, fx - 3, fy - 1, fw + 6, fh + 6, 17f, 0x1A000000, dp)
