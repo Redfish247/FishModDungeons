@@ -18,8 +18,19 @@ object MuseumTab : PvTab {
     private val ARMOR = Regex("(HELMET|CHESTPLATE|LEGGINGS|BOOTS|HAT|HOOD|MASK|CROWN)")
 
     private class Entry(val key: String, val item: PvItem?, val pieces: Int, val donated: Long?, val borrowing: Boolean)
-    private class Parsed(val weapons: List<Entry>, val armor: List<Entry>, val special: List<Entry>)
+    private class Parsed(val weapons: List<Entry>, val armor: List<Entry>, val special: List<Entry>) {
+        var sections: List<Pair<String, List<Entry>>>? = null
+        var rarityRows: List<Map.Entry<String, Int>>? = null
+        val pieces = (weapons + armor).sumOf { it.pieces }
+    }
     private val cache = IdentityHashMap<JsonObject, Parsed>()
+    private val tips = IdentityHashMap<Entry, List<String>>()
+    private fun tipFor(e: Entry): List<String> = tips.getOrPut(e) {
+        e.item!!.tooltip + listOfNotNull("",
+            e.donated?.let { "§7Donated: §f${DATE.format(Date(it))}" },
+            if (e.pieces > 1) "§7Pieces: §f${e.pieces}" else null,
+            if (e.borrowing) "§eCurrently borrowed" else null)
+    }
 
     private fun parse(raw: JsonObject): Parsed = cache.getOrPut(raw) {
         val weapons = ArrayList<Entry>(); val armor = ArrayList<Entry>(); val special = ArrayList<Entry>()
@@ -38,7 +49,8 @@ object MuseumTab : PvTab {
         Parsed(weapons.sortedWith(byRarity), armor.sortedWith(byRarity), special.sortedWith(byRarity))
     }
 
-    private fun sections(p: Parsed): List<Pair<String, List<Entry>>> {
+    private fun sections(p: Parsed): List<Pair<String, List<Entry>>> = p.sections ?: buildSections(p).also { p.sections = it }
+    private fun buildSections(p: Parsed): List<Pair<String, List<Entry>>> {
         val all = p.weapons + p.armor + p.special
         val rarities = all.groupBy { it.item?.rarity ?: "UNKNOWN" }
         return listOf("Weapons" to p.weapons, "Armor Sets" to p.armor, "Special" to p.special).filter { it.second.isNotEmpty() } +
@@ -53,7 +65,8 @@ object MuseumTab : PvTab {
         return 18 + sections(p).sumOf { (n, l) -> (if (n == "Rarities") 21 + 12 * rarityRows(p).size + 6 else gridH(l.size, area.w)) + GAP }
     }
 
-    private fun rarityRows(p: Parsed) = (p.weapons + p.armor + p.special).groupingBy { it.item?.rarity ?: "UNKNOWN" }.eachCount()
+    private fun rarityRows(p: Parsed) = p.rarityRows ?: buildRarityRows(p).also { p.rarityRows = it }
+    private fun buildRarityRows(p: Parsed) = (p.weapons + p.armor + p.special).groupingBy { it.item?.rarity ?: "UNKNOWN" }.eachCount()
         .entries.sortedByDescending { PvData.RARITY_ORDER.indexOf(it.key) }
 
     override fun render(c: PvCtx, area: PvRect, mouse: PvMouse) {
@@ -75,7 +88,7 @@ object MuseumTab : PvTab {
         val dx = x
         x += c.legacy("§7Donated: §f${mu.donated} items §8+ §d${mu.special} special", x, y, PvCtx.S_MD) + 14
         c.tip(dx, y - 1, x - dx, 11, listOf("§fDonations", "§7Weapons: §f${p.weapons.size}", "§7Armor sets: §f${p.armor.size}", "§7Special: §f${p.special.size}",
-            "§7Pieces: §f${(p.weapons + p.armor).sumOf { it.pieces }}"))
+            "§7Pieces: §f${p.pieces}"))
         val mx = x
         x += c.legacy("§7Milestone: §b$milestone", x, y, PvCtx.S_MD)
         c.tip(mx, y - 1, x - mx, 11, listOf("§fMuseum milestone §b$milestone", "§7Claimed reward tier"))
@@ -94,15 +107,18 @@ object MuseumTab : PvTab {
                 y += h + GAP; continue
             }
             val h = gridH(list.size, area.w)
+            if (!c.visible(y, h)) { y += h + GAP; continue }
             val cy = c.card(area.x, y, area.w, h, "$name §8${list.size}")
             val per = max(1, (area.w - 18) / CELL)
-            for ((i, e) in list.withIndex()) {
+            // Only rows inside the view; tooltip built once per entry.
+            val view = c.screen.viewRect
+            val r0 = max(0, (view.y - cy) / CELL - 1)
+            val r1 = (view.bottom - cy) / CELL + 1
+            for (i in r0 * per until minOf(list.size, (r1 + 1) * per)) {
+                val e = list[i]
                 val ix = area.x + 9 + (i % per) * CELL; val iy = cy + (i / per) * CELL
                 c.item(e.item, ix, iy)
-                if (e.item != null) c.tip(ix, iy, PvCtx.SLOT, PvCtx.SLOT, e.item.tooltip + listOfNotNull("",
-                    e.donated?.let { "§7Donated: §f${DATE.format(Date(it))}" },
-                    if (e.pieces > 1) "§7Pieces: §f${e.pieces}" else null,
-                    if (e.borrowing) "§eCurrently borrowed" else null))
+                if (e.item != null) c.tipL(ix, iy, PvCtx.SLOT, PvCtx.SLOT) { tipFor(e) }
             }
             y += h + GAP
         }

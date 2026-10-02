@@ -172,9 +172,17 @@ class PvCtx(
 
     val dp = devPx()
 
-    fun textF(s: String, x: Float, y: Float, color: Int = theme.fg, size: Float = S_MD) = UiRecorder.text(s, x, y, size, color)
+    // Content outside the scrolled view is skipped (the scissor would hide it anyway).
+    private var clipTop = screen.viewRect.y
+    private var clipBot = screen.viewRect.bottom
+    fun noClip() { clipTop = Int.MIN_VALUE / 2; clipBot = Int.MAX_VALUE / 2 }
+    fun visible(y: Int, h: Int) = y + h > clipTop && y < clipBot
+    fun visibleF(y: Float, h: Float) = y + h > clipTop && y < clipBot
+
+    fun textF(s: String, x: Float, y: Float, color: Int = theme.fg, size: Float = S_MD) { if (visibleF(y - 2f, size * 1.6f)) UiRecorder.text(s, x, y, size, color) }
     // Faux bold: two passes 1 device px apart so the advance equals textW (UiRecorder bold widens every glyph).
     fun boldF(s: String, x: Float, y: Float, color: Int = theme.fg, size: Float = S_MD) {
+        if (!visibleF(y - 2f, size * 1.6f)) return
         UiRecorder.text(s, x, y, size, color); UiRecorder.text(s, x + dp, y, size, color)
     }
     fun text(s: String, x: Int, y: Int, color: Int = theme.fg, size: Float = S_MD) = textF(s, x.toFloat(), y.toFloat(), color, size)
@@ -195,8 +203,8 @@ class PvCtx(
     fun midY(boxY: Int, h: Int, size: Float): Float = PvCtx.midY(boxY.toFloat(), h.toFloat(), size)
 
     // Overlay shapes (never under an item).
-    fun rect(x: Int, y: Int, w: Int, h: Int, color: Int, r: Float = 0f) = UiRecorder.fillRoundedRect(x.toFloat(), y.toFloat(), w.toFloat(), h.toFloat(), r, color)
-    fun ring(x: Int, y: Int, w: Int, h: Int, r: Float, fill: Int, line: Int) = UiRecorder.roundedRectRing(x.toFloat(), y.toFloat(), w.toFloat(), h.toFloat(), r, 1f, fill, line)
+    fun rect(x: Int, y: Int, w: Int, h: Int, color: Int, r: Float = 0f) { if (visible(y, h)) UiRecorder.fillRoundedRect(x.toFloat(), y.toFloat(), w.toFloat(), h.toFloat(), r, color) }
+    fun ring(x: Int, y: Int, w: Int, h: Int, r: Float, fill: Int, line: Int) { if (visible(y, h)) UiRecorder.roundedRectRing(x.toFloat(), y.toFloat(), w.toFloat(), h.toFloat(), r, 1f, fill, line) }
     fun bar(x: Int, y: Int, w: Int, h: Int, frac: Double, color: Int) {
         rect(x, y, w, h, theme.track, h / 2f)
         val fw = (w * frac.coerceIn(0.0, 1.0)).toInt()
@@ -206,6 +214,7 @@ class PvCtx(
 
     // Vanilla-layer panel: safe to put items on.
     fun panel(x: Int, y: Int, w: Int, h: Int, r: Int, fill: Int, border: Int = 0) {
+        if (!visible(y - 1, h + 2)) return
         if (border != 0) smoothRect(g, x - 1, y - 1, w + 2, h + 2, r + 1f, border, dp)
         smoothRect(g, x, y, w, h, r.toFloat(), fill, dp)
     }
@@ -228,6 +237,7 @@ class PvCtx(
 
     // Item slot (vanilla layer) with rarity edge + tooltip.
     fun item(it: PvItem?, x: Int, y: Int, size: Int = SLOT) {
+        if (!visible(y, size)) return
         smoothRect(g, x, y, size, size, 3f, theme.slot, dp)
         if (it == null) return
         val o = (size - 16) / 2
@@ -235,7 +245,7 @@ class PvCtx(
         if (it.count > 1) g.itemDecorations(font, it.stack, x + o, y + o)
         if (hovered(x, y, size, size)) screen.setTip(it.tooltip)
     }
-    fun stack(st: ItemStack, x: Int, y: Int) = g.item(st, x, y)
+    fun stack(st: ItemStack, x: Int, y: Int) { if (visible(y, 16)) g.item(st, x, y) }
 
     // Pill button; returns its width.
     fun pill(x: Int, y: Int, label: String, on: Boolean, size: Float = S_SM, h: Int = 13, action: (() -> Unit)? = null): Int {
@@ -251,6 +261,7 @@ class PvCtx(
     fun levelRow(x: Int, y: Int, w: Int, icon: ItemStack?, name: String, lvl: PvTables.Level, extra: List<String> = emptyList(), xpKnown: Boolean = true): Int {
         val h = 20
         val col = if (lvl.maxed) theme.gold else theme.acc
+        if (!visible(y, h)) return h
         smoothRect(g, x, y + 1, 18, 18, 5f, col, dp)
         if (icon != null) g.item(icon, x + 1, y + 2)
         val tx = x + 23

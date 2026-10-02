@@ -73,6 +73,7 @@ class PvScreen(query: String?) : Screen(Component.literal("Profile Viewer")), Ha
         try { UiRenderer.paint(width, height, k) } catch (e: Exception) { FishDiag.fail("PvScreen.1", "pv paint failed", e) }
     }
 
+    val viewRect: PvRect get() = view
     fun setTip(lines: List<String>) { tip = lines }
     fun addHit(x: Int, y: Int, w: Int, h: Int, action: () -> Unit) {
         val hit = Hit(x, y, w, h, action)
@@ -186,7 +187,8 @@ class PvScreen(query: String?) : Screen(Component.literal("Profile Viewer")), Ha
 
         val tl = tip
         if (tl != null) {
-            if (tl !== tipSrc) { tipSrc = tl; tipComps = tl.map { Component.literal(it) } }
+            // Content compare: eager tips hand a fresh list each frame; rebuilding Components would re-parse/re-measure every frame.
+            if (tl !== tipSrc && tl != tipSrc) { tipSrc = tl; tipComps = tl.map { Component.literal(it) } }
             ScreenTheme.nItemTooltip(tipComps, mx, my, vw, vh, paintScale = k)
         }
     }
@@ -236,7 +238,7 @@ class PvScreen(query: String?) : Screen(Component.literal("Profile Viewer")), Ha
             UiRecorder.roundedRectRing(bx.toFloat(), y1.toFloat(), cw.toFloat(), 15f, 7.5f, 1f, if (hov || dropdown == 1) t.panel else t.panel2, t.line)
             boldT(coop, bx + 7f, mid(y1, 15, PvCtx.S_SM), PvCtx.S_SM, t.fg)
             PvCtx.chevron(bx + cw - 10f, y1 + 7.5f, true, t.mut)
-            addHit(bx, y1, cw, 15) { if (dropdown == 1) dropdown = 0 else { dropdown = 1; dropX = bx + cw; dropY = y1 + 18 } }
+            addHit(bx, y1, cw, 15) { if (dropdown == 1) dropdown = 0 else { dropdown = 1; dropX = bx + cw; dropY = y1 + 17 } }
             val pl = prof.cuteName + (if (prof.modeIcon.isNotEmpty()) " " + prof.modeIcon else "")
             val pw = PvCtx.width(pl, PvCtx.S_SM).toInt() + 22
             rx -= pw + 6
@@ -245,7 +247,7 @@ class PvScreen(query: String?) : Screen(Component.literal("Profile Viewer")), Ha
             UiRecorder.roundedRectRing(px.toFloat(), y1.toFloat(), pw.toFloat(), 15f, 7.5f, 1f, if (hovP || dropdown == 2) t.panel else t.panel2, t.line)
             boldT(pl, px + 7f, mid(y1, 15, PvCtx.S_SM), PvCtx.S_SM, t.fg)
             PvCtx.chevron(px + pw - 10f, y1 + 7.5f, true, t.mut)
-            addHit(px, y1, pw, 15) { if (dropdown == 2) dropdown = 0 else openProfileMenu(px + pw, y1 + 18) }
+            addHit(px, y1, pw, 15) { if (dropdown == 2) dropdown = 0 else openProfileMenu(px + pw, y1 + 17) }
         }
         val nameLabel = res?.name ?: ""
         if (nameLabel.isNotEmpty() && tx + tw + 8 + PvCtx.width(nameLabel, PvCtx.S_MD) < rx - 6)
@@ -327,13 +329,15 @@ class PvScreen(query: String?) : Screen(Component.literal("Profile Viewer")), Ha
         val rowH = 16
         val w = max(PvCtx.width(header, PvCtx.S_SM).toInt(), rows.maxOfOrNull { PvCtx.width(it.first, PvCtx.S_SM).toInt() + 2 } ?: 0) + 24
         val h = 20 + rows.size * rowH + 4
-        val x = (dropX - w).coerceAtLeast(4)
-        val y = dropY
+        // Right-aligned under the button, kept on screen.
+        val x = (dropX - w).coerceIn(4, max(4, vw - w - 4))
+        val y = dropY.coerceIn(4, max(4, vh - h - 4))
         popupRect = PvRect(x, y, w, h)
         UiRecorder.dropShadow(x.toFloat(), y.toFloat(), w.toFloat(), h.toFloat(), 8f, 8f, 0x66000000)
         UiRecorder.roundedRectRing(x.toFloat(), y.toFloat(), w.toFloat(), h.toFloat(), 8f, 1f, opaque(t.frame), t.line)
         UiRecorder.text(header, x + 10f, mid(y + 2, 16, PvCtx.S_SM), PvCtx.S_SM, t.mut)
         var ry = y + 18
+        lastCtx?.noClip()
         for ((label, action) in rows) {
             val hov = mx in x + 4 until x + w - 4 && my in ry until ry + rowH
             if (hov) UiRecorder.fillRoundedRect(x + 4f, ry.toFloat(), w - 8f, rowH.toFloat(), 5f, t.panel)
