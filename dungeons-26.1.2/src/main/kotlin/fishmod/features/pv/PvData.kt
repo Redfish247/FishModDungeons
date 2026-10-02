@@ -63,9 +63,12 @@ class PvDungeons(
 }
 
 class PvPet(
-    val type: String, val name: String, val tier: String, val xp: Double, val level: PvTables.Level,
+    val type: String, private val fallbackName: String, val tier: String, val xp: Double, val level: PvTables.Level,
     val heldItem: String?, val active: Boolean, val candyUsed: Int, val skin: String?, val uuid: String?,
-) { val rarityCode get() = PvTables.RARITY_CODE[tier] ?: "§f" }
+) {
+    val rarityCode get() = PvTables.RARITY_CODE[tier] ?: "§f"
+    val name: String get() = NeuRepo.petName(type) ?: fallbackName
+}
 
 class PvAccessory(val item: PvItem, val active: Boolean, val mp: Int)
 
@@ -300,7 +303,9 @@ object PvData {
         val pets = m.arr("pets_data", "pets")?.mapNotNull { el ->
             val p = el as? JsonObject ?: return@mapNotNull null
             val type = p.str("type") ?: return@mapNotNull null
-            val tier = p.str("tier") ?: "COMMON"
+            val baseTier = p.str("tier") ?: "COMMON"
+            // Tier Boost raises rarity (and the level table offset) by one.
+            val tier = if (p.str("heldItem") == "PET_ITEM_TIER_BOOST") RARITY_ORDER.getOrNull(RARITY_ORDER.indexOf(baseTier) + 1) ?: baseTier else baseTier
             val xp = p.num("exp") ?: 0.0
             PvPet(type, pretty(type), tier, xp, PvTables.petLevel(xp, tier, type), p.str("heldItem"),
                 p.bool("active") ?: false, p.int("candyUsed") ?: 0, p.str("skin"), p.str("uuid"))

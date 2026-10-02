@@ -238,12 +238,19 @@ class PvCtx(
     // Item slot (vanilla layer) with rarity edge + tooltip.
     fun item(it: PvItem?, x: Int, y: Int, size: Int = SLOT) {
         if (!visible(y, size)) return
-        smoothRect(g, x, y, size, size, 3f, theme.slot, dp)
+        slotRect(x, y, size, size, theme.slot)
         if (it == null) return
         val o = (size - 16) / 2
-        g.item(it.stack, x + o, y + o)
-        if (it.count > 1) g.itemDecorations(font, it.stack, x + o, y + o)
+        val st = it.stack
+        g.item(st, x + o, y + o)
+        if (it.count > 1) g.itemDecorations(font, st, x + o, y + o)
         if (hovered(x, y, size, size)) screen.setTip(it.tooltip)
+    }
+    // Cheap pseudo-rounded slot background: 3 fills instead of a per-scanline rounded rect.
+    fun slotRect(x: Int, y: Int, w: Int, h: Int, color: Int) {
+        g.fill(x + 1, y, x + w - 1, y + 1, color)
+        g.fill(x, y + 1, x + w, y + h - 1, color)
+        g.fill(x + 1, y + h - 1, x + w - 1, y + h, color)
     }
     fun stack(st: ItemStack, x: Int, y: Int) { if (visible(y, 16)) g.item(st, x, y) }
 
@@ -317,3 +324,4 @@ fun fmt(v: Double?): String {
 }
 
 fun full(v: Double?): String = if (v == null) "?" else "%,d".format(v.toLong())
+

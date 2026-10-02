@@ -31,34 +31,54 @@ class PvItem(val tag: CompoundTag) {
 
     val tooltip: List<String> by lazy { listOf(name) + lore }
 
-    // Rebuilt until the items DB is loaded, else the first-frame paper fallback sticks forever.
+    // Built once and reused (same instance keeps the GUI item atlas + skull texture caches warm);
+    // only rebuilt when a data source it was waiting on (items DB / NEU skin) lands.
     private var built: ItemStack? = null
+    private var builtStamp = -1
+    private var waiting = false
     val stack: ItemStack get() {
-        built?.let { return it }
+        val b = built
+        if (b != null && (!waiting || builtStamp == stamp())) return b
+        waiting = false
         val st = FishDiag.guard("PvItem.1", "item build failed for $id") { build() } ?: ItemStack(Items.BARRIER)
-        if (fishmod.utils.networth.ItemsDb.isLoaded() || id == null) built = st
+        built = st; builtStamp = stamp()
         return st
     }
+    private fun stamp() = NeuRepo.version * 2 + if (fishmod.utils.networth.ItemsDb.isLoaded()) 1 else 0
     private val legacyId: Int = tag.getShortOr("id", 0.toShort()).toInt()
 
     private fun build(): ItemStack {
-        val base = LootIcons.icon(id)?.copy()
-            ?: if (skullTexture != null) ItemStack(Items.PLAYER_HEAD) else ItemStack(LEGACY_IDS[legacyId] ?: Items.PAPER)
-        if (skullTexture != null && base.item == Items.PLAYER_HEAD) {
-            val props = com.google.common.collect.ImmutableMultimap.of("textures", com.mojang.authlib.properties.Property("textures", skullTexture))
-            val profile = com.mojang.authlib.GameProfile(java.util.UUID.nameUUIDFromBytes(skullTexture.toByteArray()), "fmpv", com.mojang.authlib.properties.PropertyMap(props))
-            base.set(DataComponents.PROFILE, ResolvableProfile.createResolved(profile))
+        if (id != null && !fishmod.utils.networth.ItemsDb.isLoaded()) waiting = true
+        var tex = skullTexture
+        var base = LootIcons.icon(id)?.copy()
+            ?: if (tex != null) ItemStack(Items.PLAYER_HEAD) else ItemStack(LEGACY_IDS[legacyId] ?: Items.PAPER)
+        // Resource-pack items (bait etc.) come through as paper: use the pre-pack NEU skull skin.
+        if (tex == null && id != null && base.item == Items.PAPER) {
+            val sk = NeuRepo.skin(id)
+            if (sk == null) waiting = true
+            else if (sk.texture != null) { tex = sk.texture; base = ItemStack(Items.PLAYER_HEAD) }
+            else neuItem(sk.itemId)?.let { base = ItemStack(it) }
         }
+        if (tex != null && base.item == Items.PLAYER_HEAD) base.set(DataComponents.PROFILE, skullProfile(tex))
         if (dye != null) base.set(DataComponents.DYED_COLOR, DyedItemColor(dye))
         if (glint) base.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true)
         base.set(DataComponents.CUSTOM_NAME, Component.literal(name))
         base.count = count.coerceAtMost(base.maxStackSize.coerceAtLeast(1))
         return base
     }
-
     companion object {
         private val LEGACY_IDS = mapOf(262 to Items.ARROW, 373 to Items.POTION, 438 to Items.SPLASH_POTION, 397 to Items.PLAYER_HEAD,
             349 to Items.COD, 346 to Items.FISHING_ROD, 288 to Items.FEATHER, 351 to Items.INK_SAC, 341 to Items.SLIME_BALL, 409 to Items.PRISMARINE_SHARD)
+        private val profiles = HashMap<String, ResolvableProfile>()
+        // One resolved profile per texture so every head with that skin shares it.
+        fun skullProfile(tex: String): ResolvableProfile = profiles.getOrPut(tex) {
+            val props = com.google.common.collect.ImmutableMultimap.of("textures", com.mojang.authlib.properties.Property("textures", tex))
+            ResolvableProfile.createResolved(com.mojang.authlib.GameProfile(java.util.UUID.nameUUIDFromBytes(tex.toByteArray()), "fmpv", com.mojang.authlib.properties.PropertyMap(props)))
+        }
+        fun neuItem(itemId: String): net.minecraft.world.item.Item? {
+            val key = net.minecraft.resources.Identifier.tryParse(itemId) ?: return null
+            return net.minecraft.core.registries.BuiltInRegistries.ITEM.getOptional(key).orElse(null)?.takeIf { it != Items.AIR && it != Items.PAPER }
+        }
         fun decode(b64: String?): List<PvItem?> {
             if (b64.isNullOrEmpty()) return emptyList()
             return HypixelApi.decodeItems(b64).map { t -> t?.let { PvItem(it) } }
@@ -76,16 +96,24 @@ class PvInv(val items: List<PvItem?>) {
 // Pet icon + tooltip shared by tabs.
 object PvPets {
     private val cache = HashMap<String, ItemStack>()
+    private var cacheVer = -1
     fun icon(p: PvPet): ItemStack {
-        val key = p.type + p.tier
+        if (cacheVer != NeuRepo.version) { cache.clear(); cacheVer = NeuRepo.version }
+        val key = p.type + p.tier + (p.skin ?: "")
         cache[key]?.let { return it }
         val idx = PvData.RARITY_ORDER.indexOf(p.tier).coerceAtLeast(0)
-        val st = fishmod.features.PetIcons.icon(p.name) ?: LootIcons.icon("${p.type};$idx") ?: return ItemStack(Items.BONE)
+        val neu = p.skin?.let { NeuRepo.skin("PET_SKIN_$it") }?.texture ?: NeuRepo.skin("${p.type};$idx")?.texture
+            ?: NeuRepo.skin("${p.type};${(idx - 1).coerceAtLeast(0)}")?.texture
+        val st = neu?.let { ItemStack(Items.PLAYER_HEAD).apply { set(DataComponents.PROFILE, PvItem.skullProfile(it)) } }
+            ?: fishmod.features.PetIcons.icon(p.name) ?: LootIcons.icon("${p.type};$idx") ?: return ItemStack(Items.BONE)
         cache[key] = st
         return st
+    }    private val tips = java.util.WeakHashMap<PvPet, List<String>>()
+    private var tipVer = -1
+    fun tooltip(p: PvPet): List<String> {
+        if (tipVer != NeuRepo.version) { tips.clear(); tipVer = NeuRepo.version }
+        return tips.getOrPut(p) { buildTooltip(p) }
     }
-    private val tips = java.util.WeakHashMap<PvPet, List<String>>()
-    fun tooltip(p: PvPet): List<String> = tips.getOrPut(p) { buildTooltip(p) }
     private fun buildTooltip(p: PvPet): List<String> {
         val out = ArrayList<String>()
         out += "§7[Lvl ${p.level.level}] ${p.rarityCode}${p.name}"
