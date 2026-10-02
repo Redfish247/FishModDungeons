@@ -13,9 +13,9 @@ object RiftTab : PvTab {
 
     // id fragment -> display name
     private val PORHTALS = listOf(
-        "wyld_woods" to "Wyld Woods", "enigma" to "Enigma's Crib", "lagoon" to "Black Lagoon", "west_village" to "West Village",
-        "village_plaza" to "Village Plaza", "dreadfarm" to "Dreadfarm", "living_cave" to "Living Cave", "colosseum" to "Colosseum",
-        "stillgore" to "Stillgore Château", "mountaintop" to "Mountaintop", "barrier_street" to "Barrier Street", "otherside" to "Otherside",
+        "wyld_woods" to "Wyld Woods", "black_lagoon" to "Black Lagoon", "west_village" to "West Village",
+        "village_plaza" to "Village Plaza", "mirrorverse" to "Mirrorverse", "living_cave" to "Living Cave",
+        "colosseum" to "Colosseum", "barrier_street" to "Barrier Street", "mountaintop" to "Mountaintop",
     )
     private val TIMECHARMS = listOf(
         "wyldly_supreme" to "Supreme Timecharm", "mirrored" to "mrahcemiT esrevrorriM", "chicken_n_egg" to "Chicken N Egg Timecharm",
@@ -91,8 +91,9 @@ object RiftTab : PvTab {
     }
 
     private fun porhtalCard(c: PvCtx, rift: JsonObject?, x: Int, y: Int, w: Int, h: Int) {
-        val got = (rift.arr("village_plaza", "porhtals") ?: rift.arr("porhtal", "porhtals_unlocked"))
-            ?.mapNotNull { runCatching { it.asString.lowercase() }.getOrNull() }.orEmpty()
+        // Wyld Woods is free; the rest are rift.lifetime_purchased_boundaries
+        val got = (rift?.getAsJsonArray("lifetime_purchased_boundaries")
+            ?.mapNotNull { runCatching { it.asString.lowercase() }.getOrNull() }.orEmpty()) + "wyld_woods"
         var cy = c.card(x, y, w, h, "Porhtals §8${PORHTALS.count { p -> got.any { it.contains(p.first) } }}/${PORHTALS.size}")
         for ((key, name) in PORHTALS) {
             val on = got.any { it.contains(key) }

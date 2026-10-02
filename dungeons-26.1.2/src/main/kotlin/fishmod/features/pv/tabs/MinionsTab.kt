@@ -100,7 +100,7 @@ object MinionsTab : PvTab {
         val top = tiers.maxOrNull() ?: 0
         val maxed = top >= 11
         val faded = top == 0
-        c.panel(x, y, w, 17, 8, if (c.hovered(x, y, w, 17)) t.panel else t.panel2, if (maxed) t.gold else t.line)
+        c.panel(x, y, w, 17, 8, if (c.hovered(x, y, w, 17)) t.panel else t.panel2, t.line)
         c.stack(icon(mn.key), x + 2, y + 1)
         val fg = if (faded) t.mut else t.fg
         c.text(mn.name, x + 21, y + 5, fg, PvCtx.S_SM)

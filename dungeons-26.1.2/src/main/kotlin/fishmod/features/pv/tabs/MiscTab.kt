@@ -150,8 +150,8 @@ object MiscTab : PvTab {
         for ((i, cs) in b.cons.withIndex()) {
             val tx = area.x + 9 + (i % per) * (tw + TGAP)
             val ty = cy0 + (i / per) * (TILE_H + TGAP)
-            val col = if (cs.maxed) t.gold else t.fg
-            c.panel(tx, ty, tw, TILE_H, 5, t.panel2, if (cs.maxed) t.gold else t.line)
+            val col = t.fg
+            c.panel(tx, ty, tw, TILE_H, 5, t.panel2, t.line)
             c.stack(LootIcons.icon(cs.def.id) ?: cs.def.fallback, tx + 6, ty + (TILE_H - 16) / 2)
             val maxW = tw - 34
             if (cs.shownW != maxW) {

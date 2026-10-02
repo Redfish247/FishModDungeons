@@ -157,7 +157,7 @@ object BestiaryTab : PvTab {
         for (s in secs) {
             val isOpen = s.name in open
             val h = HEAD + if (isOpen) bodyH(s, area.w) else 0
-            c.panel(area.x, y, area.w, h, 6, t.panel, if (s.done) t.gold else t.line)
+            c.panel(area.x, y, area.w, h, 6, t.panel, t.line)
             if (c.hovered(area.x, y, area.w, HEAD)) c.panel(area.x, y, area.w, HEAD, 6, t.panel2)
             c.stack(s.icon.stack(), area.x + 4, y + (HEAD - 16) / 2)
             val nameX = area.x + 25
@@ -189,7 +189,7 @@ object BestiaryTab : PvTab {
             val tx = x + 9 + (i % per) * (tw + TGAP)
             val ty = y + (i / per) * (TH + TGAP)
             // Dark card; maxed = gold border + gold name, never a gold fill.
-            c.panel(tx, ty, tw, TH, 5, t.panel2, if (tl.maxed) t.gold else t.line)
+            c.panel(tx, ty, tw, TH, 5, t.panel2, t.line)
             c.stack(tl.icon.stack(), tx + 5, ty + (TH - 16) / 2)
             val tx2 = tx + 26
             val inner = tw - 26 - 6

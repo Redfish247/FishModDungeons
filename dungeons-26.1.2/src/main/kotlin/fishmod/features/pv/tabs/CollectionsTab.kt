@@ -93,7 +93,7 @@ object CollectionsTab : PvTab {
             val tier = col.tiers.count { amt >= it }
             val isMax = col.tiers.isNotEmpty() && tier >= col.tiers.size
             val accent = if (isMax) t.gold else t.acc
-            c.panel(x, y, w, ROW_H, 6, t.panel, if (isMax) t.gold else t.line)
+            c.panel(x, y, w, ROW_H, 6, t.panel, t.line)
             c.panel(x + 6, y + 6, 18, 18, 4, t.slot)
             c.stack(icon(col.key), x + 7, y + 7)
             val label = "${col.name} ${ROMAN.getOrElse(tier) { tier.toString() }}"

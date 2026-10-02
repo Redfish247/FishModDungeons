@@ -62,8 +62,8 @@ object HomeTab : PvTab {
         c.ring(x, y - 1, pw, 16, 8f, if (c.hovered(x, y - 1, pw, 16)) t.panel else t.panel2, t.line)
         c.boldF(pl, x + 7f, c.midY(y - 1, 16, PvCtx.S_LG), t.fg, PvCtx.S_LG)
         c.chevron(x + pw - 10f, y + 7f, true)
-        val px = x
-        c.hit(x, y - 1, pw, 16) { c.screen.openProfileMenu(px + pw, y + 17) }
+        val px = x; val py = y // y is a var: capture it, or the menu opens at the end-of-render y
+        c.hit(x, y - 1, pw, 16) { c.screen.openProfileMenu(px + pw, py + 17) }
         y += 20
 
         // Member pills + status chips
