@@ -134,7 +134,7 @@ object HomeTab : PvTab {
     }
 
     private fun stats(c: PvCtx): List<Pair<String, List<String>>> {
-        val key = c.result.networthStatus + c.result.playerStatus + c.profile.id + c.member.accessories.selectedPower
+        val key = PvNetworth.get(c.profile, c.member.uuid).status + c.result.playerStatus + c.profile.id + c.member.accessories.selectedPower
         if (statsMember === c.member && statsKey == key) return statsCache
         return buildStats(c).also { statsMember = c.member; statsKey = key; statsCache = it }
     }
@@ -156,12 +156,15 @@ object HomeTab : PvTab {
             "§7True avg (no progress): §f${"%.2f".format(m.skills.filter { it.key !in PvTables.COSMETIC_SKILLS }.map { it.level.level }.average())}",
         )
         m.fairySouls?.let { fs -> out += "Fairy Souls: §d$fs" to listOfNotNull("§d$fs §7collected", m.fairyExchanges?.let { "§7Exchanges: §f$it" }) }
-        val nwLabel = when (r.networthStatus) { "ok" -> fmt(r.networth); "loading" -> "…"; else -> "unavailable" }
-        out += "Networth: §6$nwLabel" to listOfNotNull(
-            "§fNetworth", r.networth?.let { "§6${full(it)} coins" },
-            r.networthProfile?.let { "§7Profile: §f$it" }, "§7Purse: §6${fmt(m.purse)}", "§7Bank: §6${fmt(c.profile.bank)}",
-            if (r.networthProfile != null && r.networthProfile != c.profile.cuteName) "§8(networth is for the selected profile)" else null,
-        )
+        val nw = PvNetworth.get(c.profile, m.uuid)
+        val nwLabel = when (nw.status) { "ok" -> fmt(nw.total); "loading" -> "…"; else -> "unavailable" }
+        out += "Networth: §6$nwLabel" to buildList {
+            add("§fNetworth")
+            if (nw.status == "ok") {
+                add("§6${full(nw.total)} coins"); add("")
+                nw.parts.entries.filter { it.value >= 1 }.sortedByDescending { it.value }.forEach { (k, v) -> add("§7$k: §6${fmt(v)}") }
+            } else add(if (nw.status == "loading") "§7Calculating…" else "§cCould not calculate")
+        }
         val acc = m.accessories
         val mp = acc.highestMagicalPower ?: acc.magicalPower
         out += "Magical Power: §b$mp" to listOfNotNull(
@@ -196,19 +199,21 @@ object HomeTab : PvTab {
         var cy = c.card(x, y, w, CARD_H, "Loadouts")
         val sets = (0 until m.wardrobeSetCount).filter { i -> m.wardrobeSet(i).any { it != null } }
         if (loadout >= 0 && loadout !in sets) loadout = -1
-        var px = x + 9
-        px += c.pill(px, cy, "Current", loadout == -1, PvCtx.S_XS, 11) { loadout = -1 } + 3
-        for (i in sets) {
-            val lbl = "W${i + 1}" + if (m.wardrobeEquipped == i + 1) "*" else ""
-            val pw = c.textW(lbl, PvCtx.S_XS) + 12
-            if (px + pw > x + w - 8) break
-            px += c.pill(px, cy, lbl, loadout == i, PvCtx.S_XS, 11) { loadout = i } + 3
+        if (sets.isNotEmpty()) {
+            var px = x + 9
+            px += c.pill(px, cy, "Current", loadout == -1, PvCtx.S_XS, 11) { loadout = -1 } + 3
+            for (i in sets) {
+                val lbl = "W${i + 1}" + if (m.wardrobeEquipped == i + 1) "*" else ""
+                val pw = c.textW(lbl, PvCtx.S_XS) + 12
+                if (px + pw > x + w - 8) break
+                px += c.pill(px, cy, lbl, loadout == i, PvCtx.S_XS, 11) { loadout = i } + 3
+            }
+            cy += 15
         }
-        cy += 15
         c.text("Armor", x + 9, cy, t.mut, PvCtx.S_XS)
         c.text("Equip.", x + 9 + 4 * 20 + 6, cy, t.mut, PvCtx.S_XS)
         c.text("Pet", x + 9 + 8 * 20 + 12, cy, t.mut, PvCtx.S_XS)
-        cy += 9
+        cy += 10
         val armor = if (loadout >= 0) m.wardrobeSet(loadout) else m.armor
         if (!m.inventoryApi) c.text("Inventory API off", x + 9, cy + 5, t.bad, PvCtx.S_SM)
         else {

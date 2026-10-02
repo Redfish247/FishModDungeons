@@ -1074,70 +1074,86 @@ public class HypixelApi {
                 String pname = chosen.has("cute_name") ? chosen.get("cute_name").getAsString() : null;
                 JsonObject member = chosen.getAsJsonObject("members").getAsJsonObject(uuid);
 
+                java.util.Map<String, Double> bd = networthBreakdown(chosen, uuid);
                 double total = 0;
-                if (chosen.has("banking") && chosen.getAsJsonObject("banking").has("balance"))
-                    total += chosen.getAsJsonObject("banking").get("balance").getAsDouble();
-                if (member.has("currencies") && member.getAsJsonObject("currencies").has("coin_purse"))
-                    total += member.getAsJsonObject("currencies").get("coin_purse").getAsDouble();
-                else if (member.has("coin_purse")) total += member.get("coin_purse").getAsDouble();
-                if (member.has("profile") && member.getAsJsonObject("profile").has("bank_account"))
-                    total += member.getAsJsonObject("profile").get("bank_account").getAsDouble();
-
-                double liquid = total;
-                double invVal = 0, storageVal = 0, bagsVal = 0, wardrobeVal = 0, equipLoadoutVal = 0;
-                if (member.has("inventory")) {
-                    JsonObject inv = member.getAsJsonObject("inventory");
-                    for (String k : NW_STORAGES) invVal += sumStorageNw(inv, k, prices);
-                    if (inv.has("backpack_contents") && inv.get("backpack_contents").isJsonObject()) {
-                        JsonObject bp = inv.getAsJsonObject("backpack_contents");
-                        for (String k : bp.keySet()) storageVal += sumStorageNw(bp, k, prices);
-                    }
-                    if (inv.has("bag_contents") && inv.get("bag_contents").isJsonObject()) {
-                        JsonObject bags = inv.getAsJsonObject("bag_contents");
-                        for (String k : bags.keySet()) bagsVal += sumStorageNw(bags, k, prices);
-                    }
-                }
-                if (member.has("loadout") && member.get("loadout").isJsonObject()) {
-                    JsonObject lo = member.getAsJsonObject("loadout");
-                    if (lo.has("armor") && lo.get("armor").isJsonObject()) {
-                        for (Map.Entry<String, JsonElement> e : lo.getAsJsonObject("armor").entrySet()) {
-                            if (!e.getValue().isJsonObject()) continue;
-                            JsonObject layout = e.getValue().getAsJsonObject();
-                            for (String p : new String[]{"HELMET", "CHESTPLATE", "LEGGINGS", "BOOTS"})
-                                wardrobeVal += sumStorageNw(layout, p, prices);
-                        }
-                    }
-                    if (lo.has("equipment") && lo.get("equipment").isJsonObject()) {
-                        for (Map.Entry<String, JsonElement> e : lo.getAsJsonObject("equipment").entrySet()) {
-                            if (!e.getValue().isJsonObject()) continue;
-                            JsonObject layout = e.getValue().getAsJsonObject();
-                            for (String p : new String[]{"EQUIPMENT_SLOT_1", "EQUIPMENT_SLOT_2",
-                                                         "EQUIPMENT_SLOT_3", "EQUIPMENT_SLOT_4"})
-                                equipLoadoutVal += sumStorageNw(layout, p, prices);
-                        }
-                    }
-                }
-                total = liquid + invVal + storageVal + bagsVal + wardrobeVal + equipLoadoutVal;
-                fishmod.utils.debug.Debug.LOGGER.debug(
-                        "[Networth] buckets: liquid={} inv(NW_STORAGES)={} storage/backpacks={} bag_contents={} wardrobe={} equipLoadout={}",
-                        liquid, invVal, storageVal, bagsVal, wardrobeVal, equipLoadoutVal);
-                double liquidAndItems = total;
-                double pets = petsValueNw(member, prices);
-                double sacks = sacksValueNw(member, prices);
-                double essence = essenceValueNw(member, prices);
-                double toolkits = toolkitsValueNw(member, prices);
-                double museum = chosen.has("profile_id")
-                        ? museumValueNw(uuid, chosen.get("profile_id").getAsString(), prices) : 0;
-                total = liquidAndItems + pets + sacks + essence + toolkits + museum;
-                fishmod.utils.debug.Debug.LOGGER.debug(
-                        "[Networth] {} total={} (liquid+items={} pets={} sacks={} essence={} toolkits={} museum={})",
-                        pname, total, liquidAndItems, pets, sacks, essence, toolkits, museum);
+                for (double v : bd.values()) total += v;
+                fishmod.utils.debug.Debug.LOGGER.debug("[Networth] {} total={} {}", pname, total, bd);
 
                 cb.onData(total, pname);
             } catch (Exception ex) { fishmod.utils.debug.FishDiag.fail("HypixelApi.42", "getNetworthLocal failed", ex);
                 fishmod.utils.debug.Debug.LOGGER.warn("[Networth] error: {}", ex.toString());
                 cb.onData(-1, null);
             }
+    }
+
+    // Per-category networth for one member of a raw profile JSON. Blocking (prices + museum fetch); call off-thread.
+    public static java.util.LinkedHashMap<String, Double> networthBreakdown(JsonObject profile, String uuid) {
+        fishmod.utils.networth.ItemsDb.ensureLoaded();
+        Map<String, Double> prices = nwPrices();
+        java.util.LinkedHashMap<String, Double> out = new java.util.LinkedHashMap<>();
+        JsonObject member = profile.getAsJsonObject("members").getAsJsonObject(uuid);
+        double purse = 0;
+        if (member.has("currencies") && member.getAsJsonObject("currencies").has("coin_purse"))
+            purse = member.getAsJsonObject("currencies").get("coin_purse").getAsDouble();
+        else if (member.has("coin_purse")) purse = member.get("coin_purse").getAsDouble();
+        double bank = 0;
+        if (profile.has("banking") && profile.getAsJsonObject("banking").has("balance"))
+            bank += profile.getAsJsonObject("banking").get("balance").getAsDouble();
+        if (member.has("profile") && member.getAsJsonObject("profile").has("bank_account"))
+            bank += member.getAsJsonObject("profile").get("bank_account").getAsDouble();
+        out.put("Purse", purse);
+        out.put("Bank", bank);
+        double armor = 0, equip = 0, inv = 0, ender = 0, wardrobe = 0, vault = 0, acc = 0, bags = 0, backpacks = 0;
+        if (member.has("inventory") && member.get("inventory").isJsonObject()) {
+            JsonObject in = member.getAsJsonObject("inventory");
+            armor = sumStorageNw(in, "inv_armor", prices);
+            equip = sumStorageNw(in, "equipment_contents", prices);
+            inv = sumStorageNw(in, "inv_contents", prices);
+            ender = sumStorageNw(in, "ender_chest_contents", prices);
+            wardrobe = sumStorageNw(in, "wardrobe_contents", prices);
+            vault = sumStorageNw(in, "personal_vault_contents", prices);
+            acc = sumStorageNw(in, "talisman_bag", prices);
+            for (String k : new String[]{"fishing_bag", "potion_bag", "quiver", "candy_inventory_contents"}) bags += sumStorageNw(in, k, prices);
+            if (in.has("backpack_contents") && in.get("backpack_contents").isJsonObject()) {
+                JsonObject bp = in.getAsJsonObject("backpack_contents");
+                for (String k : bp.keySet()) backpacks += sumStorageNw(bp, k, prices);
+            }
+            if (in.has("bag_contents") && in.get("bag_contents").isJsonObject()) {
+                JsonObject b = in.getAsJsonObject("bag_contents");
+                for (String k : b.keySet()) {
+                    double v = sumStorageNw(b, k, prices);
+                    if (k.equals("talisman_bag")) acc += v; else bags += v;
+                }
+            }
+        }
+        if (member.has("loadout") && member.get("loadout").isJsonObject()) {
+            JsonObject lo = member.getAsJsonObject("loadout");
+            if (lo.has("armor") && lo.get("armor").isJsonObject())
+                for (Map.Entry<String, JsonElement> e : lo.getAsJsonObject("armor").entrySet()) {
+                    if (!e.getValue().isJsonObject()) continue;
+                    for (String p : new String[]{"HELMET", "CHESTPLATE", "LEGGINGS", "BOOTS"}) wardrobe += sumStorageNw(e.getValue().getAsJsonObject(), p, prices);
+                }
+            if (lo.has("equipment") && lo.get("equipment").isJsonObject())
+                for (Map.Entry<String, JsonElement> e : lo.getAsJsonObject("equipment").entrySet()) {
+                    if (!e.getValue().isJsonObject()) continue;
+                    for (String p : new String[]{"EQUIPMENT_SLOT_1", "EQUIPMENT_SLOT_2", "EQUIPMENT_SLOT_3", "EQUIPMENT_SLOT_4"}) wardrobe += sumStorageNw(e.getValue().getAsJsonObject(), p, prices);
+                }
+        }
+        out.put("Armor", armor);
+        out.put("Equipment", equip);
+        out.put("Wardrobe", wardrobe);
+        out.put("Inventory", inv);
+        out.put("Ender Chest", ender);
+        out.put("Backpacks", backpacks);
+        out.put("Personal Vault", vault);
+        out.put("Accessories", acc);
+        out.put("Bags", bags);
+        out.put("Pets", petsValueNw(member, prices));
+        out.put("Sacks", sacksValueNw(member, prices));
+        out.put("Essence", essenceValueNw(member, prices));
+        out.put("Toolkits", toolkitsValueNw(member, prices));
+        out.put("Museum", profile.has("profile_id") ? museumValueNw(uuid, profile.get("profile_id").getAsString(), prices) : 0);
+        return out;
     }
 
     private static Map<String, Double> nwPrices() {

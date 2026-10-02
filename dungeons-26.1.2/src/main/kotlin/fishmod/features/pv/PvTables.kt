@@ -37,11 +37,11 @@ object PvTables {
     )
     val COSMETIC_SKILLS = setOf("runecrafting", "social")
 
-    fun skillCap(skill: String, farmingCapBonus: Int = 0, tamingCapBonus: Int = 10): Int = when (skill) {
+    fun skillCap(skill: String, farmingCapBonus: Int = 0, tamingCapBonus: Int = 10, foragingCapBonus: Int = 0): Int = when (skill) {
         "farming" -> 50 + farmingCapBonus.coerceIn(0, 10)
         "taming" -> 50 + tamingCapBonus.coerceIn(0, 10)
         "mining", "combat", "enchanting" -> 60
-        "foraging" -> 54
+        "foraging" -> 54 + foragingCapBonus.coerceIn(0, 6)
         "fishing", "alchemy", "carpentry", "hunting" -> 50
         "runecrafting", "social" -> 25
         else -> 50
@@ -55,18 +55,37 @@ object PvTables {
 
     fun dungeon(xp: Long): Level = level(DUNGEON_PER, xp, 50)
 
-    // SkyCrypt-style overflow: past the table each level costs `step` (default: last table level).
+    // Uncapped level. Skills: SkyHanni SkillUtil.calculateSkillLevel (table to 60, then 7.6M +600k/level, slope x2 every 10).
+    // Runecrafting/social: last table step. Dungeons: SkyCrypt 200M/level past 50.
     fun levelWithOverflow(skill: String, xp: Long, cap: Int): Level = when (skill) {
         "runecrafting" -> overflow(RUNECRAFTING_PER, xp, cap, RUNECRAFTING_PER.last())
         "social" -> overflow(SOCIAL_PER, xp, cap, SOCIAL_PER.last())
         "catacombs", "dungeon", "healer", "mage", "berserk", "archer", "tank" -> overflow(DUNGEON_PER, xp, 50, 200_000_000L)
-        else -> overflow(SKILL_PER, xp, cap, SKILL_PER.last())
+        else -> skyHanni(xp, cap)
     }
     fun dungeonOverflow(xp: Long): Level = overflow(DUNGEON_PER, xp, 50, 200_000_000L)
 
+    private val SKILL_CUM = LongArray(SKILL_PER.size + 1).also { for (i in SKILL_PER.indices) it[i + 1] = it[i] + SKILL_PER[i] }
+
+    private fun skyHanni(xp: Long, cap: Int): Level {
+        var cur = xp.coerceAtLeast(0); var lvl = 0
+        while (lvl < 60 && cur >= SKILL_PER[lvl]) { cur -= SKILL_PER[lvl]; lvl++ }
+        var next = if (lvl < 60) SKILL_PER[lvl] else 0L
+        if (lvl >= 60) {
+            var slope = 600_000L
+            next = 7_000_000L + slope
+            while (cur >= next) {
+                lvl++; cur -= next; next += slope
+                if (lvl % 10 == 0) slope *= 2
+            }
+        }
+        val capXp = SKILL_CUM[cap.coerceIn(0, 60)]
+        val over = xp >= capXp
+        return Level(lvl, cur.toDouble() / next, cur, next, over, cap, xp, overflow = over, overflowXp = (xp - capXp).coerceAtLeast(0))
+    }
+
     private fun overflow(per: LongArray, xp: Long, cap: Int, step: Long): Level {
         val base = level(per, xp, cap)
-        // Only skills whose cap is the whole table overflow; others stay at their in-game cap.
         if (!base.maxed || cap < per.size) return base
         val rem = base.xpInto
         val extra = (rem / step).toInt()

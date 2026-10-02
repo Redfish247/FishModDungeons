@@ -175,10 +175,28 @@ class PvResult(val uuid: String, val name: String, val profiles: List<PvProfile>
     @Volatile var playerStatus = "loading"
     @Volatile var guild: PvGuild? = null
     @Volatile var guildStatus = "loading"
-    @Volatile var networth: Double? = null
-    @Volatile var networthProfile: String? = null
-    @Volatile var networthStatus = "loading"
     val selected get() = profiles.firstOrNull { it.selected } ?: profiles.firstOrNull()
+}
+
+// Local networth engine (HypixelApi.networthBreakdown), computed off-thread once per profile member.
+class PvNw(@Volatile var status: String = "loading", @Volatile var total: Double = 0.0, @Volatile var parts: Map<String, Double> = emptyMap())
+
+object PvNetworth {
+    private val cache = ConcurrentHashMap<String, PvNw>()
+    private val exec = java.util.concurrent.Executors.newSingleThreadExecutor { r -> Thread(r, "FishMod-PvNetworth").apply { isDaemon = true } }
+
+    fun get(p: PvProfile, uuid: String): PvNw = cache.computeIfAbsent(p.id + ":" + uuid) {
+        val nw = PvNw()
+        exec.execute {
+            try {
+                val bd = HypixelApi.networthBreakdown(p.raw, uuid)
+                nw.parts = bd; nw.total = bd.values.sum(); nw.status = "ok"
+            } catch (e: Exception) {
+                FishDiag.fail("PvData.nw", "networth compute failed", e); nw.status = "unavailable"
+            }
+        }
+        nw
+    }
 }
 
 class PvLoad(val query: String?) {
@@ -266,7 +284,7 @@ object PvData {
         val tamingBonus = m.arr("pets_data", "pet_care", "pet_types_sacrificed")?.size() ?: 0
         val skills = PvTables.SKILLS.map { k ->
             val xp = exp.long("SKILL_" + k.uppercase())
-            val cap = PvTables.skillCap(k, farmingBonus, tamingBonus)
+            val cap = PvTables.skillCap(k, farmingBonus, tamingBonus, exp.int("SKILL_FORAGING_extra_level_cap") ?: 0)
             PvSkill(k, k.replaceFirstChar { it.uppercase() }, xp, PvTables.skill(k, xp ?: 0, cap), xp == null)
         }
         val main = skills.filter { it.key !in PvTables.COSMETIC_SKILLS }
@@ -423,12 +441,6 @@ object PvData {
 
     // Player, guild, networth for the looked-up uuid.
     private fun fetchExtras(res: PvResult) {
-        HypixelApi.proxyGet("/networth?uuid=${res.uuid}") { st, body ->
-            val o = parseJson(body)
-            if (st == 200 && o != null && o.num("networth") != null) {
-                res.networth = o.num("networth"); res.networthProfile = o.str("profile"); res.networthStatus = "ok"
-            } else res.networthStatus = "unavailable"
-        }
         HypixelApi.getPlayer(res.uuid) { st, body ->
             val p = if (st == 200) parseJson(body)?.obj("player") else null
             if (p == null) { res.playerStatus = "unavailable"; return@getPlayer }
