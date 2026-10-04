@@ -1,0 +1,633 @@
+# SkyHanni — everything turned on
+
+Source: Modrinth profile "Skyblock 1.21.8" (config.json, saved 2026-10-04). Sub-options are only listed when their feature’s master toggle is on. Includes options that are on by default.
+
+## Gui (7)
+- Time Format24h
+- Marked Players › Highlight In Chat
+- Modify Words › Enabled
+- Beacon Power Stat
+- Real Time Format Toggle
+- Real Time Show Seconds
+- Hide Gui In Debug Menu
+
+## Garden (88)
+- Visitors › Timer › Enabled
+- Visitors › Timer › Sixth Visitor Enabled
+- Visitors › Timer › Sixth Visitor Warning
+- Visitors › Shopping List › Enabled
+- Visitors › Shopping List › In Bazaar Alley
+- Visitors › Shopping List › Show Price
+- Visitors › Shopping List › Show Sack Count
+- Visitors › Shopping List › Item Preview
+- Visitors › Inventory › Exact Amount And Time
+- Visitors › Inventory › Copper Price
+- Visitors › Reward Warning › Notify In Chat
+- Visitors › Reward Warning › Show Over Name
+- Visitors › Reward Warning › Prevent Refusing
+- Visitors › Reward Warning › Prevent Refusing New
+- Visitors › Reward Warning › Option Outline
+- Visitors › Charmed › Enabled
+- Visitors › Notification Chat
+- Visitors › Notification Title
+- Visitors › Hypixel Arrived Message
+- Visitors › Hide Chat
+- Number › Crop Milestone
+- Number › Average Crop Milestone
+- Number › Crop Upgrades
+- Number › Composter Upgrades
+- Crop Milestones › Progress
+- Crop Milestones › Next › Show Current
+- Crop Milestones › Mushroom Pet Perk › Enabled
+- Optimal Speeds › Sign Enabled
+- Optimal Angles › Sign Enabled
+- Jacob Contest › Next Contest › Display
+- Jacob Contest › Next Contest › Fetch Automatically
+- Jacob Contest › Personal Bests › Increase F F
+- Jacob Contest › Times Needed › Enabled
+- Jacob Contest › Times Needed › Custom B P S › Enabled
+- Jacob Contest › Contest Summary › Enabled
+- Jacob Contest › Contest Summary › Hide Zero Crop Stats
+- Jacob Contest › Ff For Contest
+- Garden Bps Tracker › Per Tracker Config › Timed Tracker › Reset Session
+- Garden Bps Tracker › Per Tracker Config › Tracker Config › Show Uptime
+- Garden Bps Tracker › Per Tracker Config › Tracker Config › Only Show Session
+- Anita Shop › Extra Farming Fortune
+- Composters › Overlay
+- Composters › Upgrade Price
+- Composters › Round Down
+- Composters › Highlight Upgrade
+- Composters › Inventory Numbers
+- Pests › Pest Spawn › Show Title
+- Pests › Pest Finder › Show Plot In World
+- Pests › Pest Timer › Enabled
+- Pests › Spray › Draw Plots Border When In Hands
+- Pests › Spray › Expiry Notification
+- Pests › Stereo Harmony › Display Enabled
+- Pests › Stereo Harmony › Show Head
+- Pests › Stereo Harmony › Show Crop
+- Pests › Stereo Harmony › Hide When None
+- Pests › Stereo Harmony › Replace Menu Icons
+- Greenhouse › Show Display
+- Greenhouse › Highlight Harvestable Status
+- Greenhouse › Highlight Water Status
+- Greenhouse › Phantomleaf Solver
+- Greenhouse › Mutations Website
+- Tooltip Tweak › Crop Milestone Total Progress
+- Mouse Sensitivity Reducer › Show Gui
+- Mouse Sensitivity Reducer › Chat Message
+- Mouse Sensitivity Reducer › On Ground
+- Mouse Sensitivity Reducer › Only Plot
+- Plot Icon › Enabled
+- Garden Commands › Warp Commands
+- Dna Analyzer Solver › Enabled
+- Dna Analyzer Solver › Use Middle Click
+- Dna Analyzer Solver › Block Accidental Closing
+- Dna Analyzer Solver › Hide Tooltips
+- Crop Fever Tracker › Enabled
+- Crop Fever Tracker › Only With Tool
+- Crop Fever Tracker › Only During Fever
+- Crop Fever Tracker › Per Tracker Config › Tracker Config › Item Tracker › Show Recent Drops
+- Crop Fever Tracker › Per Tracker Config › Tracker Config › Item Tracker › Show Table
+- Crop Fever Tracker › Per Tracker Config › Tracker Config › Item Tracker › Profit Per Hour
+- Crop Fever Tracker › Per Tracker Config › Tracker Config › Item Tracker › Hide In Estimated Item Value
+- Crop Fever Tracker › Per Tracker Config › Tracker Config › Item Tracker › Warnings › Chat
+- Crop Fever Tracker › Per Tracker Config › Tracker Config › Item Tracker › Warnings › Title
+- Crop Fever Tracker › Per Tracker Config › Tracker Config › Show Uptime
+- Crop Fever Tracker › Per Tracker Config › Tracker Config › Only Show Session
+- Farming Toolkit › Replace Menu Icons
+- Plot Price
+- Copy Milestone Data
+- Show Log Book Stats
+- Help Carrolyn
+
+## Crimson Isle (8)
+- Matriarch Helper › Enabled
+- Matriarch Helper › Highlight
+- Matriarch Helper › Line
+- Pablo Helper
+- Sirih Helper
+- Avorius Helper
+- Vanquisher Share › Enabled
+- Vanquisher Share › Instant Share
+
+## Rift (66)
+- Timer › Enabled
+- Timer › Max Time
+- Timer › Percentage
+- Timer › Nametag
+- Enigma Soul Waypoints › Enabled
+- Enigma Soul Waypoints › Show Path Finder
+- Enigma Soul Waypoints › Show Buttons Helper
+- Area › Wyld Woods › Shy Warning
+- Area › Wyld Woods › Larvas › Highlight
+- Area › Wyld Woods › Odonata › Highlight
+- Area › West Village › Vermin Tracker › Enabled
+- Area › West Village › Vermin Tracker › Per Tracker Config › Tracker Config › Show Uptime
+- Area › West Village › Vermin Tracker › Per Tracker Config › Tracker Config › Only Show Session
+- Area › West Village › Vermin Highlight › Enabled
+- Area › West Village › Gunthers Race › Enabled
+- Area › West Village › Gunthers Race › Rainbow Color
+- Area › West Village › Hacking › Solver
+- Area › West Village › Hacking › Color
+- Area › West Village › Hacking › Waypoints
+- Area › Dreadfarm › Agaricus Cap
+- Area › Dreadfarm › Volt Crux › Volt Warning
+- Area › Dreadfarm › Volt Crux › Volt Range
+- Area › Dreadfarm › Wilted Berberis › Enabled
+- Area › Dreadfarm › Wilted Berberis › Mute Others Sounds
+- Area › Dreadfarm › Wilted Berberis › Respawn Sequence
+- Area › Mirrorverse › Lava Maze Config › Enabled
+- Area › Mirrorverse › Lava Maze Config › Rainbow Color
+- Area › Mirrorverse › Crafting Room › Enabled
+- Area › Mirrorverse › Crafting Room › Show Name
+- Area › Mirrorverse › Crafting Room › Show Health
+- Area › Mirrorverse › Crafting Room › Hide Players
+- Area › Mirrorverse › Upside Down Parkour › Enabled
+- Area › Mirrorverse › Upside Down Parkour › Outline
+- Area › Mirrorverse › Upside Down Parkour › Rainbow Color
+- Area › Mirrorverse › Tubulator Config › Enabled
+- Area › Mirrorverse › Tubulator Config › Outline
+- Area › Mirrorverse › Tubulator Config › Rainbow Color
+- Area › Living Cave › Defense Block › Enabled
+- Area › Living Cave › Living Metal › Enabled
+- Area › Living Cave › Snake Helper › Highlight
+- Area › Living Cave › Snake Helper › Solo
+- Area › Colosseum › Highlight Blobbercysts
+- Area › Colosseum › Kill Zone Warning
+- Area › Colosseum › Tentacle Waypoints
+- Area › Stillgore Chateau › Highlight Splatter Hearts
+- Area › Mountaintop › Sun Gecko › Enabled
+- Area › Mountaintop › Sun Gecko › Highlight Fake Boss
+- Area › Mountaintop › Timite › Enabled
+- Area › Mountaintop › Timite › Evolution Timer
+- Area › Mountaintop › Timite › Expiry Timer
+- Area › Mountaintop › Timite › Per Tracker Config › Tracker Config › Item Tracker › Show Recent Drops
+- Area › Mountaintop › Timite › Per Tracker Config › Tracker Config › Item Tracker › Show Table
+- Area › Mountaintop › Timite › Per Tracker Config › Tracker Config › Item Tracker › Profit Per Hour
+- Area › Mountaintop › Timite › Per Tracker Config › Tracker Config › Item Tracker › Hide In Estimated Item Value
+- Area › Mountaintop › Timite › Per Tracker Config › Tracker Config › Item Tracker › Warnings › Chat
+- Area › Mountaintop › Timite › Per Tracker Config › Tracker Config › Item Tracker › Warnings › Title
+- Area › Mountaintop › Timite › Per Tracker Config › Tracker Config › Show Uptime
+- Area › Mountaintop › Timite › Per Tracker Config › Tracker Config › Only Show Session
+- Area › Mountaintop › Enigma Rose Flowerpot
+- Area › Mountaintop › Ubik Quick Close
+- Motes › Show Price
+- Motes › Motes Per Session
+- Motes › Inventory Value › Enabled
+- Motes Orbs › Enabled
+- Highlight Guide
+- Temporal Pillar Dodge
+
+## Fishing (35)
+- Trophy Fishing › Geyser Options › Hide Particles
+- Trophy Fishing › Geyser Options › Draw Box
+- Trophy Fishing › Geyser Options › Only With Rod
+- Trophy Fishing › Golden Fish Timer › Enabled
+- Trophy Fishing › Golden Fish Timer › Nametag
+- Trophy Fishing › Golden Fish Timer › Highlight
+- Trophy Fishing › Fillet Tooltip
+- Trophy Fishing › Total Fish Caught
+- Trophy Fishing › Odger Location
+- Trophy Fishing › Load From Neu P V
+- Wormhole Finder › Enabled
+- Wormhole Finder › Departure Alert
+- Barn Timer › Enabled
+- Barn Timer › Crystal Hollows
+- Barn Timer › Crimson Isle
+- Barn Timer › Warn Personal Cap
+- Barn Timer › Warn Global Cap
+- Barn Timer › Time Alert
+- Barn Timer › Winter Island
+- Barn Timer › For Stranded
+- Fished Item Name › Enabled
+- Fishing Hook Display › Enabled
+- Fishing Hook Display › Hide Armor Stand
+- Fishing Bait Display › Enabled
+- Fishing Bait Display › Show Icon
+- Rare Catches › Alert Own Catches
+- Rare Catches › Creature Name
+- Rare Catches › Play Sound
+- Totem Of Corruption › Show Overlay
+- Totem Of Corruption › Own Totem Only
+- Totem Of Corruption › Hide Particles
+- Compact Double Hook
+- Guess Hotspot Radar
+- Guess Hotspot Radar Path Find
+- Sea Creature Kill Timer Own Mobs Only
+
+## Mining (32)
+- Hotm › Highlight Enabled Perks
+- Hotm › Level Stack Size
+- Hotm › Token Stack Size
+- Hotm › Powder Spent
+- Hotm › Powder For10 Levels
+- Hotm › Current Powder
+- Powder Chest Timer › Enabled
+- Powder Chest Timer › Highlight Chests
+- Powder Chest Timer › Draw Timer On Chest
+- Fallen Star Cult › Enabled
+- Dark Monolith › Per Tracker Config › Tracker Config › Item Tracker › Show Recent Drops
+- Dark Monolith › Per Tracker Config › Tracker Config › Item Tracker › Show Table
+- Dark Monolith › Per Tracker Config › Tracker Config › Item Tracker › Profit Per Hour
+- Dark Monolith › Per Tracker Config › Tracker Config › Item Tracker › Hide In Estimated Item Value
+- Dark Monolith › Per Tracker Config › Tracker Config › Item Tracker › Warnings › Chat
+- Dark Monolith › Per Tracker Config › Tracker Config › Item Tracker › Warnings › Title
+- Dark Monolith › Per Tracker Config › Tracker Config › Show Uptime
+- Dark Monolith › Per Tracker Config › Tracker Config › Only Show Session
+- Deep Caverns Guide › Enabled
+- Deep Caverns Guide › Rainbow Color
+- Metal Detector › Metal Detector Solver
+- Metal Detector › Metal Detector All Tools Alert
+- Ordered Waypoints › Enabled
+- Ordered Waypoints › Trace Line
+- Ordered Waypoints › Show Distance
+- Ordered Waypoints › Show Name
+- Ordered Waypoints › Sneaking During Route
+- Glacite Mineshaft › Mineshaft Detection Config › Mineshaft Detection
+- Glacite Mineshaft › Mineshaft Detection Config › Send Type To Party Chat
+- Glacite Mineshaft › Organ Donor Accessory Config › Mute When All Found
+- Don Expresso Feeding Reminder
+- Mute High Heat
+
+## Foraging (30)
+- Hotf › Highlight Enabled Perks
+- Hotf › Level Stack Size
+- Hotf › Token Stack Size
+- Hotf › Whispers Spent
+- Hotf › Whispers For10 Levels
+- Hotf › Current Whispers
+- Trees › Clean View › Hide Tree Blocks
+- Trees › Progress › Enabled
+- Trees › Progress › Only Holding Axe
+- Trees › Compact Sweep Details
+- Trees › Mute Breaking
+- Starlyn Contest › Starlyn Coupon Profit Enabled
+- Foraging Beacon › Enabled
+- Foraging Beacon › Use Middle Click
+- Foraging Beacon › Prevent Over Clicking
+- Foraging Beacon › Beacon Alert
+- Tracker › Enabled
+- Tracker › Compact Gift Chats
+- Tracker › Only Holding Axe
+- Tracker › Show Whole Trees
+- Tracker › Per Tracker Config › Tracker Config › Item Tracker › Show Recent Drops
+- Tracker › Per Tracker Config › Tracker Config › Item Tracker › Show Table
+- Tracker › Per Tracker Config › Tracker Config › Item Tracker › Profit Per Hour
+- Tracker › Per Tracker Config › Tracker Config › Item Tracker › Hide In Estimated Item Value
+- Tracker › Per Tracker Config › Tracker Config › Item Tracker › Warnings › Chat
+- Tracker › Per Tracker Config › Tracker Config › Item Tracker › Warnings › Title
+- Tracker › Per Tracker Config › Tracker Config › Show Uptime
+- Tracker › Per Tracker Config › Tracker Config › Only Show Session
+- Mute Phantoms
+- Mute Fusion Machine
+
+## Hunting (10)
+- Safari › Hideyho Finder
+- Safari › Checklist › Enabled
+- Safari › Checklist › Hide Caught
+- Safari › Checklist › Show Icons
+- Mob Highlight › Birries › Enabled
+- Mob Highlight › Hideonleaf › Enabled
+- Mob Highlight › Hideonsun › Enabled
+- Mob Highlight › Invisibug › Enabled
+- Lasso Display
+- Fusion Display
+
+## Combat (37)
+- Ghost Counter › Enabled
+- Ghost Counter › Per Tracker Config › Tracker Config › Item Tracker › Show Recent Drops
+- Ghost Counter › Per Tracker Config › Tracker Config › Item Tracker › Show Table
+- Ghost Counter › Per Tracker Config › Tracker Config › Item Tracker › Profit Per Hour
+- Ghost Counter › Per Tracker Config › Tracker Config › Item Tracker › Hide In Estimated Item Value
+- Ghost Counter › Per Tracker Config › Tracker Config › Item Tracker › Warnings › Chat
+- Ghost Counter › Per Tracker Config › Tracker Config › Item Tracker › Warnings › Title
+- Ghost Counter › Per Tracker Config › Tracker Config › Show Uptime
+- Ghost Counter › Per Tracker Config › Tracker Config › Only Show Session
+- End Island › Draconic Sacrifice Tracker › Enabled
+- End Island › Draconic Sacrifice Tracker › Only In Void Slate
+- End Island › Draconic Sacrifice Tracker › Per Tracker Config › Tracker Config › Item Tracker › Show Recent Drops
+- End Island › Draconic Sacrifice Tracker › Per Tracker Config › Tracker Config › Item Tracker › Show Table
+- End Island › Draconic Sacrifice Tracker › Per Tracker Config › Tracker Config › Item Tracker › Profit Per Hour
+- End Island › Draconic Sacrifice Tracker › Per Tracker Config › Tracker Config › Item Tracker › Hide In Estimated Item Value
+- End Island › Draconic Sacrifice Tracker › Per Tracker Config › Tracker Config › Item Tracker › Warnings › Chat
+- End Island › Draconic Sacrifice Tracker › Per Tracker Config › Tracker Config › Item Tracker › Warnings › Title
+- End Island › Draconic Sacrifice Tracker › Per Tracker Config › Tracker Config › Show Uptime
+- End Island › Draconic Sacrifice Tracker › Per Tracker Config › Tracker Config › Only Show Session
+- End Island › Endstone Protector Chat
+- Quiver Config › Quiver Display › Enabled
+- Quiver Config › Quiver Display › Show Icon
+- Quiver Config › Low Quiver Notification
+- Mobs › Area Boss Highlight
+- Mobs › Arachne Keeper Highlight
+- Mobs › Corleone Highlighter
+- Mobs › Special Zealot Highlighter
+- Mobs › Arachne Boss Highlighter
+- Mobs › Show Arachne Spawn Timer
+- Mobs › Arachne Kill Timer
+- Mobs › Enderman Teleportation Hider
+- Mobs › Hide Name Tag Arachne Minis
+- Deployable › Enabled
+- Deployable › Highest Tier Only
+- Broodmother › Countdown
+- Cocoon Overlay › Show Cocoon Timer Till Hatch
+- Cocoon Overlay › Show Cocoon Contained Mob Name
+
+## Slayer (14)
+- Spider › Highlight Invincible
+- Spider › Highlight Egg Sacs
+- Vampire › Coop Boss › Highlight
+- Vampire › Coop Boss › Steak Alert
+- Vampire › Coop Boss › Twin Claws Title
+- Vampire › Change Color When Can Steak
+- Vampire › Killer Spring › Fix Sound Spam
+- Items On Ground › Enabled
+- Slayer Time Messages › Time To Kill
+- Slayer Time Messages › Quest Complete
+- Block Not Spawnable
+- Quest Warning
+- Quest Warning Title
+- Gummy Warning
+
+## Dungeon (15)
+- Highlight Deathmites
+- Architect Notifier
+- Object Hider › Hide Skeleton Skull
+- Tab List › Colored Class Level
+- Trinity Helper › Enabled
+- Highlight Skeleton Skull
+- Chest › Show Used Kismets
+- Chest › Kismet Stack Size
+- Chest › Croesus Limit
+- Chest › Croesus Overlay
+- Croesus Unopened Chest Tracker
+- Terminal Waypoints
+- Dungeons Race Guide › Enabled
+- Dungeons Race Guide › Rainbow Color
+- Dungeon Secret Compass
+
+## Inventory (74)
+- Skyblock Guide › Menu Guide
+- Skyblock Guide › Missing Tasks
+- Skyblock Guide › Power Stone
+- Skyblock Guide › Abiphone Guide
+- Skyblock Guide › Minion Guide
+- Skyblock Guide › Consumable Guide
+- Skyblock Guide › Jacob Guide
+- Skyblock Guide › Story Guide
+- Skyblock Guide › One Time Completion
+- Auctions › Highlight Auctions
+- Bazaar › Purchase Helper
+- Bazaar › Craft Materials From Bazaar
+- Enchant Parsing › Color Parsing
+- Enchant Parsing › Hide Vanilla Enchants
+- Enchant Parsing › Stacking Enchant Progress
+- Helper › Tia Relay › Sound Helper
+- Helper › Tia Relay › Next Waypoint
+- Helper › Tia Relay › Tia Relay Mute
+- Helper › Reforge › Enabled
+- Helper › Reforge › Reforge Stones Only Hex
+- Helper › Reforge › Block Non Basic Reforge
+- Item Abilities › Item Ability Show When Ready
+- Item Abilities › Chicken Head › Hide Chat
+- Custom Loadout › Highlighting › Enabled
+- Custom Loadout › Highlighting › Currently Equipped
+- Chocolate Factory › Enabled
+- Chocolate Factory › Stats Display
+- Chocolate Factory › Chocolate Shop Price › Enabled
+- Chocolate Factory › Hoppity Collection Stats › Enabled
+- Chocolate Factory › Hoppity Collection Stats › Rarity Dye Recolor
+- Chocolate Factory › Hoppity Collection Stats › Descriptive Milestones
+- Chocolate Factory › Show Stack Sizes
+- Chocolate Factory › Highlight Upgrades
+- Chocolate Factory › Use Middle Click
+- Chocolate Factory › Extra Tooltip Stats
+- Chocolate Factory › Time Tower Reminder
+- Chocolate Factory › Compact On Click
+- Chocolate Factory › Hoppity Menu Shortcut
+- Chocolate Factory › Stray Rabbit Tracker
+- Chocolate Factory › Stray Tracker Config › Tracker Config › Show Uptime
+- Chocolate Factory › Stray Tracker Config › Tracker Config › Only Show Session
+- Chocolate Factory › Hitman Costs
+- Personal Compactor › Enabled
+- Personal Compactor › Show Toggle
+- Super Crafting › Waste › Enabled
+- Stats Tuning › Selected Stats
+- Stats Tuning › Points
+- Stats Tuning › Selected Template
+- Stats Tuning › Template Stats
+- Jacob Farming Contests › Highlight Rewards
+- Jacob Farming Contests › Real Time
+- Jacob Farming Contests › Medal Icon
+- Jacob Farming Contests › Finnegan Icon
+- Gfs › Queued G F S
+- Gfs › Super Craft G F S
+- Pocket Sack In A Sack › Replace Lore
+- Attribute Shards › Enabled
+- Attribute Shards › Hide Maxed
+- Attribute Shards › Include Hunting Box
+- Attribute Shards › Include Bazaar Orders
+- Attribute Shards › Tier As Stack Size
+- Attribute Shards › Highlight Disabled Attributes
+- Attribute Shards › Hunting Box Value
+- Highlight Widgets
+- Vacuum Bag Cap
+- Stonk Of Stonk Price
+- Minister In Calendar
+- Oringo Pet In Calendar
+- Hex As Color In Lore
+- Essence Shop Helper
+- Snake Game Keybinds
+- Highlight Active Beacon Effect
+- Middle Click Fix
+- Museum Category Highlight
+
+## Event (70)
+- Bingo › Bingo Card › Enabled
+- Bingo › Bingo Card › Quick Toggle
+- Bingo › Bingo Card › Bingo Splash Guide
+- Bingo › Bingo Card › Next Tip Duration
+- Bingo › Bingo Card › Hide Done Difficulty
+- Bingo › Bingo Card › Community Goal Progress
+- Bingo › Compact Chat › Enabled
+- Bingo › Compact Chat › Hide Border
+- Bingo › Minion Craft Helper Enabled
+- Winter › Frozen Treasure Tracker › Enabled
+- Winter › Frozen Treasure Tracker › Only In Cave
+- Winter › Frozen Treasure Tracker › Per Tracker Config › Tracker Config › Show Uptime
+- Winter › Frozen Treasure Tracker › Per Tracker Config › Tracker Config › Only Show Session
+- Winter › Frozen Treasure Highlighter › Enabled
+- Winter › Island Close Time
+- Winter › New Year Cake Reminder
+- Winter › Reindrake Warp Helper
+- Gifting › Gifting Opportunities › Enabled
+- Gifting › Gifting Opportunities › Highligh With Gift Only
+- Gifting › Unique Gift Counter › Enabled
+- Spooky › Spooky Chests › Enabled
+- Spooky › Spooky Chests › Play Sound
+- Hoppity Eggs › Event Summary › Enabled
+- Hoppity Eggs › Warp Menu › Enabled
+- Hoppity Eggs › Warp Menu › Hide When Maxed
+- Hoppity Eggs › Stray Timer › Enabled
+- Hoppity Eggs › Chat › Egg Locator Time In Chat
+- Hoppity Eggs › Waypoints › Enabled
+- Hoppity Eggs › Waypoints › Shared
+- Hoppity Eggs › Waypoints › Load From Neu Pv
+- Hoppity Eggs › Highlight Hoppity Shop
+- Hoppity Eggs › Hoppity Shop Reminder
+- Hoppity Eggs › Prevent Missing Rabbit The Fish
+- Timing › Season Locked Messages
+- City Project › Show Materials
+- City Project › Show Ready
+- City Project › Daily Reminder
+- Jerry › Highlight Jerries
+- Jerry › Line Jerries
+- Carnival › Fruit Digging › Enabled
+- Carnival › Fruit Digging › Display Adjacent Treasure
+- Carnival › Fruit Digging › Display Adjacent Mines
+- Carnival › Fruit Digging › Display Fruit Guesses
+- Carnival › Fruit Digging › Display Best Dig
+- Carnival › Fruit Digging › Remaining Fruit Display
+- Carnival › Reminder Daily Tickets
+- Carnival › Show Goals
+- Carnival › Double Click To Start
+- Carnival › Token Shop Helper
+- Feast › Fetch Automatically
+- Anniversary Celebration400 › Highlight Daily Tasks
+- Anniversary Celebration400 › Team Finder
+- Year Of The Seal › Fishy Treat Profit
+- Year Of The Seal › Bouncy Ball Line
+- Year Of The Seal › Bouncy Ball Landing Spot
+- Year Of The Seal › Beach Ball Tracker › Enabled
+- Year Of The Seal › Beach Ball Tracker › Per Tracker Config › Tracker Config › Show Uptime
+- Year Of The Seal › Beach Ball Tracker › Per Tracker Config › Tracker Config › Only Show Session
+- Year Of The Pig › Shiny Orb Tracker › Enabled
+- Year Of The Pig › Shiny Orb Tracker › Per Tracker Config › Tracker Config › Item Tracker › Show Recent Drops
+- Year Of The Pig › Shiny Orb Tracker › Per Tracker Config › Tracker Config › Item Tracker › Show Table
+- Year Of The Pig › Shiny Orb Tracker › Per Tracker Config › Tracker Config › Item Tracker › Profit Per Hour
+- Year Of The Pig › Shiny Orb Tracker › Per Tracker Config › Tracker Config › Item Tracker › Hide In Estimated Item Value
+- Year Of The Pig › Shiny Orb Tracker › Per Tracker Config › Tracker Config › Item Tracker › Warnings › Chat
+- Year Of The Pig › Shiny Orb Tracker › Per Tracker Config › Tracker Config › Item Tracker › Warnings › Title
+- Year Of The Pig › Shiny Orb Tracker › Per Tracker Config › Tracker Config › Show Uptime
+- Year Of The Pig › Shiny Orb Tracker › Per Tracker Config › Tracker Config › Only Show Session
+- Year Of The Witch › Stew Helper
+- Year Of The Witch › Stew Highlighter
+- Lobby Waypoints › Easter Egg › Only Closest
+
+## Chat (16)
+- Filter Type › Stash Messages › Enabled
+- Filter Type › Stash Messages › Hide Duplicate Warning › Enabled
+- Filter Type › Stash Messages › Hide Duplicate Warning › World Change Reset
+- Filter Type › Stash Messages › Hide Added Messages
+- Filter Type › Stash Messages › Tab Complete Stash Command
+- Rare Drop Messages › Pet Rarity
+- Rare Drop Messages › Enchanted Book
+- Current Chat Display
+- Compact Potion Messages › Enabled
+- Compact Potion Messages › Clickable Chat Message
+- Compact Bestiary Message
+- Sky Block X P In Chat
+- Hide Jacob
+- Hide Sky Mall
+- Hide Lottery
+- Dark Auction Item Display
+
+## Misc (98)
+- Pets › Display › Visual › Equipped Pet › Icon › Enabled
+- Pets › Display › Visual › Equipped Pet › Icon › Skin Animation
+- Pets › Display › Visual › Equipped Pet › Rarity Background › Enabled
+- Pets › Display › Visual › Equipped Pet › Rarity Background › Border Ring › Enabled
+- Pets › Display › Visual › Equipped Pet › Rarity Background › Border Ring › Separator › Enabled
+- Pets › Display › Text › Equipped Pet › Text Labels
+- Pets › Display › Text › Equipped Pet › Name Level
+- Pets › Display › Text › Equipped Pet › Name Skin Symbol
+- Pets › Display › Text › Equipped Pet › Next Level Percent
+- Pets › Pet Experience Tool Tip › Pet Display
+- Pets › Pet Experience Tool Tip › Show Dragon Egg
+- Pets › Taming Sixty › Enabled
+- Pets › Highlight In Menu › Enabled
+- Commands › Tab Complete › Warps
+- Commands › Tab Complete › Island Players
+- Commands › Tab Complete › Friends
+- Commands › Tab Complete › Party
+- Commands › Tab Complete › Vip Visits
+- Commands › Tab Complete › Gfs Sack
+- Commands › Tab Complete › Viewrecipe Items
+- Commands › Tab Complete › Show Item
+- Commands › Tab Complete › Call
+- Commands › Better Wiki › Enabled
+- Commands › Reverse P T › Command
+- Commands › Short Commands
+- Commands › Accept Last Invite
+- Commands › Party Kick Reason
+- Commands › View Recipe Lower Case
+- Party Commands › Show Ignored Reminder
+- Minions › Name Display
+- Minions › Minion Config Helper
+- Minions › Hopper Profit Display
+- Minions › Xp Display
+- Minions › Inferno Profit Tracker › Enabled
+- Minions › Inferno Profit Tracker › Show After Collection
+- Minions › Inferno Profit Tracker › Per Tracker Config › Tracker Config › Item Tracker › Show Recent Drops
+- Minions › Inferno Profit Tracker › Per Tracker Config › Tracker Config › Item Tracker › Show Table
+- Minions › Inferno Profit Tracker › Per Tracker Config › Tracker Config › Item Tracker › Profit Per Hour
+- Minions › Inferno Profit Tracker › Per Tracker Config › Tracker Config › Item Tracker › Hide In Estimated Item Value
+- Minions › Inferno Profit Tracker › Per Tracker Config › Tracker Config › Item Tracker › Warnings › Chat
+- Minions › Inferno Profit Tracker › Per Tracker Config › Tracker Config › Item Tracker › Warnings › Title
+- Minions › Inferno Profit Tracker › Per Tracker Config › Tracker Config › Show Uptime
+- Minions › Inferno Profit Tracker › Per Tracker Config › Tracker Config › Only Show Session
+- Navigation › Pathfinding › Start From Eye
+- Navigation › Allow Instant Navigation
+- Trevor The Trapper › Data Tracker
+- Trevor The Trapper › Display Type
+- Trevor The Trapper › Solver
+- Trevor The Trapper › Talbot Circles
+- Trevor The Trapper › Mob Died Message
+- Trevor The Trapper › Cooldown
+- Trevor The Trapper › Ready Title
+- Kick Duration › Enabled
+- Tracker › Timed Tracker › Reset Session
+- Tracker › Item Tracker › Show Recent Drops
+- Tracker › Item Tracker › Show Table
+- Tracker › Item Tracker › Profit Per Hour
+- Tracker › Item Tracker › Hide In Estimated Item Value
+- Tracker › Item Tracker › Warnings › Chat
+- Tracker › Item Tracker › Warnings › Title
+- Tracker › Show Uptime
+- Tracker › Only Show Session
+- Pet Candy › Show Candy
+- Bits › Bulk Buy Cookie Time
+- Bits › Show Bits On Cookie
+- Bits › Enable Warning
+- Bits › Notification Sound
+- Bits › Bits Gain Chat Message
+- Reminders › Show Title
+- Enchanted Clock › Reminder
+- Fruit Bowl › Player Highlighter
+- Fruit Bowl › Display
+- Cake Counter › Soul Found Alert
+- Glowing Mushroom Highlighter › Enabled
+- Colorful Item Tooltips › Replace Rift Seconds
+- Reset Search Gui On Close
+- Hide Temporary Armor Stands
+- Brewing Stand Overlay
+- Xp In Inventory
+- Hide Piggy Scoreboard
+- Crystal Hollows Join
+- Server Restart Title
+- Restore Piece Of Wizard Portal Lore
+- Account Upgrade Reminder
+- Show Time In Limbo
+- Show Limbo Time In Playtime Detailed
+- Fix Ghost Entities
+- Charge Bottle Notification
+- Unknown Perkpocalypse Mayor Warning
+- Last Storage › Open Last Storage
+- Custom Todos › Enabled
+- Custom Todos › Separate Guis
+- Gfs Piggy Bank
+- User Luck
+- Warn About Pc Time Offset
+- Coral Fish Helper
+- Fix Double Clicks
+- Achievement Messages
